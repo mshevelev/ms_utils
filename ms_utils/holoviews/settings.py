@@ -6,13 +6,13 @@ def apply_defaults():
 
     hv.opts.defaults(
         hv.opts.Curve(show_grid=True, padding=0.03,
-                      default_tools=['xbox_zoom', 'box_zoom',
+                      default_tools=['auto_box_zoom', 'crosshair',
                                      'pan', 'undo', 'redo', 'reset'],
                       active_tools=['xbox_zoom'],
                       toolbar='above'
                       ),
         hv.opts.Scatter(show_grid=True, padding=0.03,
-                        default_tools=['box_zoom', 'pan',
+                        default_tools=['auto_box_zoom', 'crosshair', 'pan',
                                        'undo', 'redo', 'reset'],
                         toolbar='above'
                         ),
