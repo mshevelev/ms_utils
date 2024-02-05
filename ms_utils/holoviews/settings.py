@@ -8,7 +8,7 @@ def apply_defaults():
         hv.opts.Curve(show_grid=True, padding=0.03,
                       default_tools=['auto_box_zoom', 'crosshair',
                                      'pan', 'undo', 'redo', 'reset'],
-                      active_tools=['xbox_zoom'],
+                      active_tools=['auto_box_zoom'],
                       toolbar='above'
                       ),
         hv.opts.Scatter(show_grid=True, padding=0.03,
@@ -34,6 +34,12 @@ def apply_defaults():
                              active_tools=['pan'],
                              toolbar='above'
                              ),
+        hv.opts.Contours(show_grid=True, padding=0.01,
+            default_tools=['auto_box_zoom', 'crosshair',
+                           'pan', 'undo', 'redo', 'reset'],
+            active_tools=['auto_box_zoom'],
+            toolbar='above'
+        ),
         hv.opts.Image(show_grid=True, padding=0.01,
                       default_tools=[ 'box_zoom', "wheel_zoom",
                                      'pan', 'undo', 'redo', 'reset'],
