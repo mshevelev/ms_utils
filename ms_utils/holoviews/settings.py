@@ -41,7 +41,7 @@ def apply_defaults():
             toolbar='above'
         ),
         hv.opts.Image(show_grid=True, padding=0.01,
-                      default_tools=[ 'box_zoom', "wheel_zoom",
+                      default_tools=[ 'auto_box_zoom', "wheel_zoom",
                                      'pan', 'undo', 'redo', 'reset'],
                       active_tools=['box_zoom'],
                       toolbar='above'
