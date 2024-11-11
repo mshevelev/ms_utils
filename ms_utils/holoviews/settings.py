@@ -34,7 +34,7 @@ def apply_defaults():
                              active_tools=['pan'],
                              toolbar='above'
                              ),
-        hv.opts.HeatMap(width=450, height=400, xrotation=90, padding=0, cmap='fire',
+        hv.opts.HeatMap(frame_width=450, frame_height=450, xrotation=90, padding=0, cmap='fire',
                         colorbar=True,
                         active_tools=[],
                         toolbar='above'
