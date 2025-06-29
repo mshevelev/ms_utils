@@ -118,7 +118,11 @@ class SnippetManager:
     self._file_path = pn.widgets.StaticText(name='File Path', value="")
     self._file_select.param.watch(self._file_select_callback, ["value"], onlychanged=False)
     self._tag_select.param.watch(self._tag_select_callback, ["value"], onlychanged=False)
-    layout = pn.Row(
+    root_folder_display = pn.widgets.StaticText(name='Root Folder', value=self.root_folder)
+    layout = pn.Column(
+      root_folder_display, 
+      pn.Row(
+                self._file_select,
                 self._file_select,
                 pn.Column(
                   self._tag_select,
@@ -126,6 +130,7 @@ class SnippetManager:
                   self._editor
                 )
             )
+    ) 
     return layout
 
   def display(self, renderer="panel"):
