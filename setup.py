@@ -7,6 +7,7 @@ setup(
     install_requires=[
         'bokeh',
         'holoviews',
+        'panel',
         # Add any other dependencies here
     ],
 )

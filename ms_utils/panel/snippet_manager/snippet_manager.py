@@ -123,7 +123,6 @@ class SnippetManager:
       root_folder_display, 
       pn.Row(
                 self._file_select,
-                self._file_select,
                 pn.Column(
                   self._tag_select,
                   self._file_path,

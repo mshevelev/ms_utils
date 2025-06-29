@@ -1,7 +1,7 @@
 import os
 import argparse
 import panel as pn
-from ms_utils.panel.snippet_manager import SnippetManager
+from ms_utils.panel.snippet_manager.snippet_manager import SnippetManager
 
 # Argument parsing
 parser = argparse.ArgumentParser(description="Standalone SnippetManager app")
