@@ -1,0 +1,14 @@
+build/
+dist/
+*.egg-info/
+# Python
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
