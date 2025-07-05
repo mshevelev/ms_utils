@@ -22,4 +22,4 @@ app = snippet_manager.display()
 print(args.port)
 
 # Serve the app
-pn.serve(app, port=args.port, allow_websocket_origin=["*"])
+pn.serve(app, port=args.port, allow_websocket_origin=["*"], show=True)
