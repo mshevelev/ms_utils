@@ -58,15 +58,20 @@ class SnippetManager:
         raise OSError(f"{item=} is neither file or directory")
 
   def _file_select_callback(self, event):
-    fpath = os.path.join(self.root_folder, event.new)
-    if os.path.isfile(fpath):
-      with open(fpath, "r") as f:
-        self._editor.value = f.read()
-        self._editor.filename = event.new
-        self._file_path.value = fpath
+    if event.new:  # Handle None case when options list changes
+      fpath = os.path.join(self.root_folder, event.new)
+      if os.path.isfile(fpath):
+        with open(fpath, "r") as f:
+          self._editor.value = f.read()
+          self._editor.filename = event.new
+          self._file_path.value = fpath
+      else:
+        self._editor.value = "No such file found"
+        self._editor.filename = "Not_found.txt"
+        self._file_path.value = ""
     else:
-      self._editor.value = "No such file found"
-      self._editor.filename = "Not_found.txt"
+      self._editor.value = "Select a file from the list"
+      self._editor.filename = ""
       self._file_path.value = ""
 
   def _search_callback(self, event):
@@ -137,12 +142,11 @@ class SnippetManager:
       name="Tags"
     )
     self._search_input = pn.widgets.TextInput(name='Search content', placeholder='Enter text...', width=300)
-    self._search_button = pn.widgets.Button(name='Search', button_type='primary')
-    self._search_button.on_click(self._search_callback)
     self._file_path = pn.widgets.StaticText(name='File Path', value="")
     
     self._file_select.param.watch(self._file_select_callback, ["value"], onlychanged=False)
     self._tag_select.param.watch(self._tag_select_callback, ["value"], onlychanged=False)
+    self._search_input.param.watch(self._search_callback, ["value"], onlychanged=False)
     
     root_folder_display = pn.widgets.StaticText(name='Root Folder', value=self.root_folder)
     layout = pn.Column(
@@ -153,10 +157,7 @@ class SnippetManager:
           self._file_select,
         ),
         pn.Column(
-          pn.Row(
-            self._search_input,
-            self._search_button,
-          ),
+          self._search_input,
           self._file_path,
           self._editor
         )
