@@ -113,7 +113,8 @@ class SnippetManager:
     self._tag_select = pn.widgets.MultiChoice(
       options=list(self._tag_list),
       value=[],
-      width=400
+      width=300,
+      name="Tags"
     )
     self._file_path = pn.widgets.StaticText(name='File Path', value="")
     self._file_select.param.watch(self._file_select_callback, ["value"], onlychanged=False)
@@ -122,13 +123,15 @@ class SnippetManager:
     layout = pn.Column(
       root_folder_display, 
       pn.Row(
-                self._file_select,
-                pn.Column(
-                  self._tag_select,
-                  self._file_path,
-                  self._editor
-                )
-            )
+        pn.Column(
+          self._tag_select,
+          self._file_select,
+        ),
+        pn.Column(
+          self._file_path,
+          self._editor
+        )
+      )
     ) 
     return layout
 
