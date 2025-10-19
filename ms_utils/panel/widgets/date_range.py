@@ -18,13 +18,17 @@ class DateRangeSelector(pn.viewable.Viewer):
     value = param.Tuple(default=None, length=2, doc="Selected date range (start_date, end_date)")
     
     # Min and max bounds for the date range
-    start = param.Date(default=None, doc="Minimum selectable date")
-    end = param.Date(default=None, doc="Maximum selectable date")
+    start = param.Parameter(default=None, doc="Minimum selectable date")
+    end = param.Parameter(default=None, doc="Maximum selectable date")
     
     def __init__(self, start=None, end=None, value=None, **params):
         # Set default date range if not provided
+        if isinstance(start, str):
+            start = datetime.strptime(start, "%Y%m%d").date()
         if start is None:
             start = dt.date(2020, 1, 1)
+        if isinstance(end, str):
+            end = datetime.strptime(end, "%Y%m%d").date()
         if end is None:
             end = dt.date.today()
             
@@ -38,16 +42,16 @@ class DateRangeSelector(pn.viewable.Viewer):
         self._start_input = pn.widgets.DatePicker(
             name='From:', 
             value=self.value[0],
-            start=self.start,
-            end=self.end,
+            start=self.start if isinstance(self.start, dt.date) else None,
+            end=self.end if isinstance(self.end, dt.date) else None,
             width=150
         )
-        
+
         self._end_input = pn.widgets.DatePicker(
-            name='To:', 
+            name='To:',
             value=self.value[1],
-            start=self.start,
-            end=self.end,
+            start=self.start if isinstance(self.start, dt.date) else None,
+            end=self.end if isinstance(self.end, dt.date) else None,
             width=150
         )
         
