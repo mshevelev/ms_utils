@@ -40,7 +40,14 @@ def d(year, month, day):
         ("20210101", "20221231", ("20210615", "invalid_date"), d(2021, 1, 1), d(2022, 12, 31), (d(2021, 6, 15), d(2022, 12, 31))),
     ]
 )
-def test_date_range_selector_initialization(start_input, end_input, value_input, expected_start, expected_end, expected_value):
+@pytest.mark.parametrize(
+    "throttled_input, expected_throttled",
+    [
+        (True, True),
+        (False, False),
+    ]
+)
+def test_date_range_selector_initialization(start_input, end_input, value_input, expected_start, expected_end, expected_value, throttled_input, expected_throttled):
     """Tests DateRangeSelector initialization with various valid and invalid inputs."""
     # Handle cases where invalid date strings should raise an error
     if isinstance(start_input, str) and "invalid_date" in start_input:
@@ -61,12 +68,13 @@ def test_date_range_selector_initialization(start_input, end_input, value_input,
         return
 
     # Create the DateRangeSelector instance
-    selector = DateRangeSelector(start=start_input, end=end_input, value=value_input)
+    selector = DateRangeSelector(start=start_input, end=end_input, value=value_input, throttled=throttled_input)
 
     # Assert the values
     assert selector.start == expected_start
     assert selector.end == expected_end
     assert selector.value == expected_value
+    assert selector.throttled == expected_throttled
 
 @pytest.mark.parametrize(
     "shortcuts_input, expected_shortcuts_len",

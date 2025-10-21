@@ -42,8 +42,10 @@ class DateRangeSelector(pn.viewable.Viewer):
     end = param.Date(default=None, doc="Maximum selectable date")
     shortcuts = param.List(default=["ALL", "YTD", "1W", "1M", "1Y"], allow_None=True, doc="List of shortcut buttons to display")
     custom_shortcuts = param.Dict(default=None, allow_None=True, doc="Dictionary of custom date range shortcuts")
+    name = param.String(default="Date Range", doc="Name of the date range selector, used as the card title.")
+    throttled = param.Boolean(default=True, doc="Whether the DateRangeSlider should be throttled.")
 
-    def __init__(self, start=None, end=None, value=None, shortcuts=None, custom_shortcuts=None, **params):
+    def __init__(self, start=None, end=None, value=None, shortcuts=None, custom_shortcuts=None, name=None, throttled=False, **params):
         # Parse and set default start date
         parsed_start = self._parse_date(start, default=dt.date(2020, 1, 1))
         # Parse and set default end date
@@ -101,7 +103,7 @@ class DateRangeSelector(pn.viewable.Viewer):
         if parsed_value is None or (parsed_value[0] is None and parsed_value[1] is None):
              parsed_value = (parsed_start, parsed_end)
 
-        super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, shortcuts=self.shortcuts, custom_shortcuts=self.custom_shortcuts, **params)
+        super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, shortcuts=self.shortcuts, custom_shortcuts=self.custom_shortcuts, name=name if name is not None else self.name, throttled=throttled, **params)
 
         # Create the date input widgets
         self._start_input = pn.widgets.DatetimeInput(
@@ -111,7 +113,7 @@ class DateRangeSelector(pn.viewable.Viewer):
             end=datetime.combine(self.end, datetime.min.time()) if self.end else None,
             format='%Y-%m-%d',
             placeholder='YYYY-MM-DD',
-            width=150
+            width=100
         )
 
         self._end_input = pn.widgets.DatetimeInput(
@@ -121,7 +123,7 @@ class DateRangeSelector(pn.viewable.Viewer):
             end=datetime.combine(self.end, datetime.min.time()) if self.end else None,
             format='%Y-%m-%d',
             placeholder='YYYY-MM-DD',
-            width=150
+            width=100
         )
 
         # Create the date range slider
@@ -131,7 +133,7 @@ class DateRangeSelector(pn.viewable.Viewer):
             end=self.end,
             value=self.value,
             step=1,
-            width=320
+            width=250,
         )
 
         self._snapshot_buttons = {}
@@ -184,7 +186,7 @@ class DateRangeSelector(pn.viewable.Viewer):
         """Set up all the callbacks for syncing between widgets"""
         self._start_input.param.watch(self._on_input_change, 'value')
         self._end_input.param.watch(self._on_input_change, 'value')
-        self._slider.param.watch(self._on_slider_change, 'value')
+        self._slider.param.watch(self._on_slider_change, 'value_throttled' if self.throttled else 'value')
 
         for name, button in self._snapshot_buttons.items():
             button.on_click(self._get_date_range_callback(name))
@@ -344,12 +346,17 @@ class DateRangeSelector(pn.viewable.Viewer):
             margin=(0, 0, 0, 0)
         ) if self.custom_shortcuts else pn.Column() # Only display if custom_shortcuts exist
         
-        return pn.Column(
-            date_inputs,
-            slider_row,
-            buttons_row,
-            custom_buttons_row, # Add custom buttons row
-            width=350
+        return pn.Card(
+            pn.Column(
+                date_inputs,
+                slider_row,
+                buttons_row,
+                custom_buttons_row, # Add custom buttons row
+                width=350
+            ),
+            title=self.name,
+            width=380, # Adjust card width to accommodate inner content and padding
+            collapsible=False
         )
 
 # Example usage
