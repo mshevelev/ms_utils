@@ -22,6 +22,14 @@ class DateRangeSelector(pn.viewable.Viewer):
     - "1M", "2M", etc.: Selects the most recent month(s) up to `end`.
     - "1Y", "2Y", etc.: Selects the most recent year(s) up to `end`.
     If `shortcuts` is None or an empty list, no shortcut buttons will be displayed.
+
+    The `custom_shortcuts` parameter accepts a dictionary where keys are names for custom
+    periods and values are tuples `(start_date, end_date)`. Each element in the tuple
+    can be a string, date, datetime, or None, and will be interpreted similarly to the
+    `value` parameter. These custom ranges should ideally fall within the `start` and `end`
+    bounds of the selector. For each key, a red button will be created and displayed
+    in a row below the standard shortcut buttons. If `custom_shortcuts` is None or an
+    empty dictionary, no such buttons will be created, and the row will not be displayed.
     """
 
     # Define the value parameter as a tuple of dates
@@ -33,8 +41,9 @@ class DateRangeSelector(pn.viewable.Viewer):
     start = param.Date(default=None, doc="Minimum selectable date")
     end = param.Date(default=None, doc="Maximum selectable date")
     shortcuts = param.List(default=["ALL", "YTD", "1W", "1M", "1Y"], allow_None=True, doc="List of shortcut buttons to display")
+    custom_shortcuts = param.Dict(default=None, allow_None=True, doc="Dictionary of custom date range shortcuts")
 
-    def __init__(self, start=None, end=None, value=None, shortcuts=None, **params):
+    def __init__(self, start=None, end=None, value=None, shortcuts=None, custom_shortcuts=None, **params):
         # Parse and set default start date
         parsed_start = self._parse_date(start, default=dt.date(2020, 1, 1))
         # Parse and set default end date
@@ -49,6 +58,14 @@ class DateRangeSelector(pn.viewable.Viewer):
             self.shortcuts = list(shortcuts)
         else:
             raise TypeError("Shortcuts must be a list of strings, a single string, or None.")
+
+        # Set custom shortcuts, ensuring it's a dict or None
+        if custom_shortcuts is None:
+            self.custom_shortcuts = {}
+        elif isinstance(custom_shortcuts, dict):
+            self.custom_shortcuts = custom_shortcuts
+        else:
+            raise TypeError("Custom shortcuts must be a dictionary or None.")
 
         # Parse and set initial value
         if value is None:
@@ -84,7 +101,7 @@ class DateRangeSelector(pn.viewable.Viewer):
         if parsed_value is None or (parsed_value[0] is None and parsed_value[1] is None):
              parsed_value = (parsed_start, parsed_end)
 
-        super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, shortcuts=self.shortcuts, **params)
+        super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, shortcuts=self.shortcuts, custom_shortcuts=self.custom_shortcuts, **params)
 
         # Create the date input widgets
         self._start_input = pn.widgets.DatetimeInput(
@@ -122,10 +139,16 @@ class DateRangeSelector(pn.viewable.Viewer):
             self._snapshot_buttons[shortcut_name] = pn.widgets.Button(
                 name=shortcut_name, button_type='primary', width=60, height=35, margin=(5, 2)
             )
+        
+        self._custom_shortcut_buttons = {}
+        for name, (start_val, end_val) in self.custom_shortcuts.items():
+            self._custom_shortcut_buttons[name] = pn.widgets.Button(
+                name=name, button_type='danger', width=60, height=35, margin=(5, 2)
+            )
 
         self._setup_callbacks()
         
-
+        
     def _parse_date(self, date_input, default=None):
         """
         Parses a date input, which can be a string, datetime.date, datetime.datetime, or None.
@@ -165,6 +188,9 @@ class DateRangeSelector(pn.viewable.Viewer):
 
         for name, button in self._snapshot_buttons.items():
             button.on_click(self._get_date_range_callback(name))
+        
+        for name, button in self._custom_shortcut_buttons.items():
+            button.on_click(self._get_custom_date_range_callback(name))
 
     def _get_date_range_callback(self, shortcut_name):
         """
@@ -214,6 +240,34 @@ class DateRangeSelector(pn.viewable.Viewer):
             
             if new_start and new_end:
                 self._update_all_widgets((new_start, new_end))
+
+        return callback
+
+    def _get_custom_date_range_callback(self, custom_shortcut_name):
+        """
+        Generates a callback function for custom date range shortcut buttons.
+        """
+        def callback(event):
+            start_val, end_val = self.custom_shortcuts[custom_shortcut_name]
+            
+            parsed_start = self._parse_date(start_val, default=self.start)
+            parsed_end = self._parse_date(end_val, default=self.end)
+
+            # Ensure custom range is within overall start/end bounds
+            start_bound = self.start
+            end_bound = self.end
+
+            if parsed_start and start_bound:
+                parsed_start = max(parsed_start, start_bound)
+            if parsed_end and end_bound:
+                parsed_end = min(parsed_end, end_bound)
+            
+            if parsed_start and parsed_end:
+                self._update_all_widgets((parsed_start, parsed_end))
+            elif parsed_start: # If only start is provided, set end to max
+                self._update_all_widgets((parsed_start, end_bound))
+            elif parsed_end: # If only end is provided, set start to min
+                self._update_all_widgets((start_bound, parsed_end))
 
         return callback
 
@@ -284,11 +338,17 @@ class DateRangeSelector(pn.viewable.Viewer):
             *self._snapshot_buttons.values(),
             margin=(0, 0, 0, 0)
         )
+
+        custom_buttons_row = pn.Row(
+            *self._custom_shortcut_buttons.values(),
+            margin=(0, 0, 0, 0)
+        ) if self.custom_shortcuts else pn.Column() # Only display if custom_shortcuts exist
         
         return pn.Column(
             date_inputs,
             slider_row,
             buttons_row,
+            custom_buttons_row, # Add custom buttons row
             width=350
         )
 
@@ -299,7 +359,14 @@ if __name__ == "__main__":
         start=dt.date(2020, 1, 1),
         end=dt.date.today(),
         value=(dt.date(2024, 1, 1), dt.date.today()),
-        shortcuts=["ALL", "YTD", "1W", "2W", "1M", "3M", "1Y"]
+        shortcuts=["ALL", "YTD", "1W", "2W", "1M", "3M", "1Y"],
+        custom_shortcuts={
+            "Last 6 Months": ((dt.date.today() - pd.DateOffset(months=6)).date(), dt.date.today()),
+            "Last Year": (dt.date.today().replace(year=dt.date.today().year - 1), dt.date.today()),
+            "Custom Period": ("20230101", "20230630"),
+            "Start to Today": (dt.date(2020, 1, 1), None),
+            "Today to End": (None, dt.date.today())
+        }
     )
     
     # Create a display that shows the selected value
