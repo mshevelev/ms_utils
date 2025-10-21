@@ -156,15 +156,15 @@ def test_update_all_widgets_invalid_value():
     # Test with None
     selector._update_all_widgets(None)
     assert selector.value == (d(2020, 1, 1), d(2022, 12, 31))
-    assert selector._start_input.value == d(2020, 1, 1)
-    assert selector._end_input.value == d(2022, 12, 31)
+    assert selector._start_input.value.date() == d(2020, 1, 1)
+    assert selector._end_input.value.date() == d(2022, 12, 31)
     assert selector._slider.value == (d(2020, 1, 1), d(2022, 12, 31))
 
     # Test with incorrect tuple length
     selector._update_all_widgets(("20210101",))
     assert selector.value == (d(2020, 1, 1), d(2022, 12, 31)) # Should reset to defaults
-    assert selector._start_input.value == d(2020, 1, 1)
-    assert selector._end_input.value == d(2022, 12, 31)
+    assert selector._start_input.value.date() == d(2020, 1, 1)
+    assert selector._end_input.value.date() == d(2022, 12, 31)
     assert selector._slider.value == (d(2020, 1, 1), d(2022, 12, 31))
 
     # Test with non-date elements in tuple
@@ -180,9 +180,9 @@ def test_update_all_widgets_start_after_end():
     selector = DateRangeSelector(start=d(2020, 1, 1), end=d(2022, 12, 31))
     selector._update_all_widgets((d(2022, 12, 31), d(2020, 1, 1))) # Swapped dates
     assert selector.value == (d(2020, 1, 1), d(2022, 12, 31)) # Should be swapped back
-    assert selector._start_input.value == d(2020, 1, 1)
-    assert selector._end_input.value == d(2022, 12, 31)
-    assert selector._end_input.value == d(2022, 12, 31)
+    assert selector._start_input.value.date() == d(2020, 1, 1)
+    assert selector._end_input.value.date() == d(2022, 12, 31)
+    assert selector._end_input.value.date() == d(2022, 12, 31)
 
 # Test cases for shortcut buttons
 @pytest.mark.parametrize(

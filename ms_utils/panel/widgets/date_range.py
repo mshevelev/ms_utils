@@ -87,19 +87,23 @@ class DateRangeSelector(pn.viewable.Viewer):
         super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, shortcuts=self.shortcuts, **params)
 
         # Create the date input widgets
-        self._start_input = pn.widgets.DatePicker(
+        self._start_input = pn.widgets.DatetimeInput(
             name='From:',
-            value=self.value[0],
-            start=self.start, # Use the parsed start date
-            end=self.end,     # Use the parsed end date
+            value=datetime.combine(self.value[0], datetime.min.time()) if self.value[0] else None,
+            start=datetime.combine(self.start, datetime.min.time()) if self.start else None,
+            end=datetime.combine(self.end, datetime.min.time()) if self.end else None,
+            format='%Y-%m-%d',
+            placeholder='YYYY-MM-DD',
             width=150
         )
 
-        self._end_input = pn.widgets.DatePicker(
+        self._end_input = pn.widgets.DatetimeInput(
             name='To:',
-            value=self.value[1],
-            start=self.start, # Use the parsed start date
-            end=self.end,     # Use the parsed end date
+            value=datetime.combine(self.value[1], datetime.min.time()) if self.value[1] else None,
+            start=datetime.combine(self.start, datetime.min.time()) if self.start else None,
+            end=datetime.combine(self.end, datetime.min.time()) if self.end else None,
+            format='%Y-%m-%d',
+            placeholder='YYYY-MM-DD',
             width=150
         )
 
@@ -216,7 +220,10 @@ class DateRangeSelector(pn.viewable.Viewer):
     def _on_input_change(self, event):
         """Handle changes from date input widgets"""
         if self._start_input.value and self._end_input.value:
-            new_value = (self._start_input.value, self._end_input.value)
+            # Convert datetime.datetime from DatetimeInput to datetime.date for internal value and slider
+            new_start_date = self._start_input.value.date()
+            new_end_date = self._end_input.value.date()
+            new_value = (new_start_date, new_end_date)
             if new_value[0] <= new_value[1]:
                 self.value = new_value
                 self._updating = True
@@ -229,8 +236,9 @@ class DateRangeSelector(pn.viewable.Viewer):
             return
         if event.new:
             self.value = event.new
-            self._start_input.value = event.new[0]
-            self._end_input.value = event.new[1]
+            # Convert datetime.date from DateRangeSlider to datetime.datetime for DatetimeInput
+            self._start_input.value = datetime.combine(event.new[0], datetime.min.time())
+            self._end_input.value = datetime.combine(event.new[1], datetime.min.time())
 
     def _update_all_widgets(self, new_value):
         """Update all widgets with new value"""
@@ -251,8 +259,9 @@ class DateRangeSelector(pn.viewable.Viewer):
 
         # Update internal value and widgets
         self.param.update(value=(valid_start, valid_end))
-        self._start_input.value = valid_start
-        self._end_input.value = valid_end
+        # Convert datetime.date to datetime.datetime for DatetimeInput widgets
+        self._start_input.value = datetime.combine(valid_start, datetime.min.time())
+        self._end_input.value = datetime.combine(valid_end, datetime.min.time())
         self._slider.value = (valid_start, valid_end)
 
 
