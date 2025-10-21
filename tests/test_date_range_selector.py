@@ -1,6 +1,7 @@
 import pytest
 import datetime as dt
 from datetime import datetime
+import pandas as pd
 from ms_utils.panel.widgets.date_range import DateRangeSelector
 
 # Helper function to create date objects for testing
@@ -66,6 +67,28 @@ def test_date_range_selector_initialization(start_input, end_input, value_input,
     assert selector.start == expected_start
     assert selector.end == expected_end
     assert selector.value == expected_value
+
+@pytest.mark.parametrize(
+    "shortcuts_input, expected_shortcuts_len",
+    [
+        (None, 0),
+        ([], 0),
+        (["ALL", "1W"], 2),
+        ("YTD", 1),
+    ]
+)
+def test_date_range_selector_shortcuts_initialization(shortcuts_input, expected_shortcuts_len):
+    """Tests DateRangeSelector initialization with various valid shortcut inputs."""
+    selector = DateRangeSelector(shortcuts=shortcuts_input)
+    assert len(selector.shortcuts) == expected_shortcuts_len
+    assert len(selector._snapshot_buttons) == expected_shortcuts_len
+
+def test_date_range_selector_invalid_shortcuts_type():
+    """Tests DateRangeSelector initialization with an invalid type for shortcuts."""
+    with pytest.raises(TypeError, match="Shortcuts must be a list of strings, a single string, or None."):
+        DateRangeSelector(shortcuts=123)
+    with pytest.raises(TypeError, match="Shortcuts must be a list of strings, a single string, or None."):
+        DateRangeSelector(shortcuts={"ALL"}) # Set is not allowed
 
 # Test cases for invalid value formats
 @pytest.mark.parametrize(
@@ -160,3 +183,51 @@ def test_update_all_widgets_start_after_end():
     assert selector._start_input.value == d(2020, 1, 1)
     assert selector._end_input.value == d(2022, 12, 31)
     assert selector._end_input.value == d(2022, 12, 31)
+
+# Test cases for shortcut buttons
+@pytest.mark.parametrize(
+    "shortcut_name, expected_start_offset_days, expected_start_offset_months, expected_start_offset_years",
+    [
+        ("ALL", None, None, None), # ALL should use start_bound
+        ("YTD", None, None, None), # YTD should use start of year
+        ("1W", 7, None, None),
+        ("2W", 14, None, None),
+        ("1M", None, 1, None),
+        ("3M", None, 3, None),
+        ("1Y", None, None, 1),
+        ("2Y", None, None, 2),
+    ]
+)
+def test_date_range_selector_shortcuts(shortcut_name, expected_start_offset_days, expected_start_offset_months, expected_start_offset_years):
+    """Tests the functionality of date range shortcut buttons."""
+    end_date = d(2024, 10, 20) # Use a fixed end date for predictable testing
+    start_date_bound = d(2020, 1, 1)
+    
+    selector = DateRangeSelector(start=start_date_bound, end=end_date, shortcuts=[shortcut_name])
+    
+    # Simulate button click
+    if shortcut_name in selector._snapshot_buttons:
+        selector._snapshot_buttons[shortcut_name].param.trigger('clicks')
+    else:
+        pytest.fail(f"Shortcut button '{shortcut_name}' not found.")
+
+    new_start, new_end = selector.value
+
+    assert new_end == end_date # End date should always be the max end date
+
+    if shortcut_name == "ALL":
+        assert new_start == start_date_bound
+    elif shortcut_name == "YTD":
+        assert new_start == d(end_date.year, 1, 1)
+    elif expected_start_offset_days is not None:
+        assert new_start == end_date - dt.timedelta(days=expected_start_offset_days)
+    elif expected_start_offset_months is not None:
+        expected_start_ts = pd.Timestamp(end_date) - pd.DateOffset(months=expected_start_offset_months)
+        assert new_start == expected_start_ts.date()
+    elif expected_start_offset_years is not None:
+        expected_start_year = end_date.year - expected_start_offset_years
+        try:
+            expected_start_date = end_date.replace(year=expected_start_year)
+        except ValueError: # Handle leap year edge case
+            expected_start_date = end_date.replace(year=expected_start_year, day=28)
+        assert new_start == expected_start_date

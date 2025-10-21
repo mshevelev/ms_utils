@@ -3,15 +3,25 @@ import param
 import datetime as dt
 from datetime import datetime, timedelta
 import pandas as pd
+import re
 
 pn.extension()
 
 class DateRangeSelector(pn.viewable.Viewer):
     """
-    A custom date range selector widget that provides three ways to select dates:
-    1. Manual input via date pickers
-    2. Date range slider
-    3. Shortcut buttons (ALL, YTD, 1W, 1M, 1Y)
+    A custom date range selector widget that provides multiple ways to select dates:
+    1. Manual input via date pickers.
+    2. Date range slider.
+    3. Dynamic shortcut buttons based on the `shortcuts` parameter.
+
+    The `shortcuts` parameter accepts a list of strings, where each string defines a
+    predefined date range. Supported formats include:
+    - "ALL": Selects the entire range from `start` to `end`.
+    - "YTD": Selects the year-to-date range (from January 1st of the current year to `end`).
+    - "1W", "2W", etc.: Selects the most recent week(s) up to `end`.
+    - "1M", "2M", etc.: Selects the most recent month(s) up to `end`.
+    - "1Y", "2Y", etc.: Selects the most recent year(s) up to `end`.
+    If `shortcuts` is None or an empty list, no shortcut buttons will be displayed.
     """
 
     # Define the value parameter as a tuple of dates
@@ -22,12 +32,23 @@ class DateRangeSelector(pn.viewable.Viewer):
     # Allow None and datetime.date objects
     start = param.Date(default=None, doc="Minimum selectable date")
     end = param.Date(default=None, doc="Maximum selectable date")
+    shortcuts = param.List(default=["ALL", "YTD", "1W", "1M", "1Y"], allow_None=True, doc="List of shortcut buttons to display")
 
-    def __init__(self, start=None, end=None, value=None, **params):
+    def __init__(self, start=None, end=None, value=None, shortcuts=None, **params):
         # Parse and set default start date
         parsed_start = self._parse_date(start, default=dt.date(2020, 1, 1))
         # Parse and set default end date
         parsed_end = self._parse_date(end, default=dt.date.today())
+
+        # Set shortcuts, ensuring it's a list or None
+        if shortcuts is None:
+            self.shortcuts = []
+        elif isinstance(shortcuts, str):
+            self.shortcuts = [shortcuts]
+        elif isinstance(shortcuts, (list, tuple)):
+            self.shortcuts = list(shortcuts)
+        else:
+            raise TypeError("Shortcuts must be a list of strings, a single string, or None.")
 
         # Parse and set initial value
         if value is None:
@@ -63,7 +84,7 @@ class DateRangeSelector(pn.viewable.Viewer):
         if parsed_value is None or (parsed_value[0] is None and parsed_value[1] is None):
              parsed_value = (parsed_start, parsed_end)
 
-        super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, **params)
+        super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, shortcuts=self.shortcuts, **params)
 
         # Create the date input widgets
         self._start_input = pn.widgets.DatePicker(
@@ -92,13 +113,11 @@ class DateRangeSelector(pn.viewable.Viewer):
             width=320
         )
 
-        self._snapshot_buttons = {
-            'ALL': pn.widgets.Button(name='ALL', button_type='primary', width=60, height=35, margin=(5, 2)),
-            'YTD': pn.widgets.Button(name='YTD', button_type='primary', width=60, height=35, margin=(5, 2)),
-            '1W': pn.widgets.Button(name='1W', button_type='primary', width=60, height=35, margin=(5, 2)),
-            '1M': pn.widgets.Button(name='1M', button_type='primary', width=60, height=35, margin=(5, 2)),
-            '1Y': pn.widgets.Button(name='1Y', button_type='primary', width=60, height=35, margin=(5, 2)),
-        }
+        self._snapshot_buttons = {}
+        for shortcut_name in self.shortcuts:
+            self._snapshot_buttons[shortcut_name] = pn.widgets.Button(
+                name=shortcut_name, button_type='primary', width=60, height=35, margin=(5, 2)
+            )
 
         self._setup_callbacks()
         
@@ -163,21 +182,30 @@ class DateRangeSelector(pn.viewable.Viewer):
                 new_end = end_bound
             elif shortcut_name == 'YTD':
                 new_start = dt.date(end_bound.year, 1, 1)
-                new_start = max(new_start, start_bound) if start_bound else new_start
-            elif shortcut_name == '1W':
-                new_start = end_bound - timedelta(days=7)
-                new_start = max(new_start, start_bound) if start_bound else new_start
-            elif shortcut_name == '1M':
-                end_ts = pd.Timestamp(end_bound)
-                one_month_ago_ts = end_ts - pd.DateOffset(months=1)
-                new_start = one_month_ago_ts.date()
-                new_start = max(new_start, start_bound) if start_bound else new_start
-            elif shortcut_name == '1Y':
-                try:
-                    new_start = end_bound.replace(year=end_bound.year - 1)
-                except ValueError:
-                    # Handle leap year edge case (Feb 29)
-                    new_start = end_bound.replace(year=end_bound.year - 1, day=28)
+            else:
+                # Handle N-week, N-month, N-year shortcuts
+                import re
+                match = re.match(r'(\d+)([WMY])', shortcut_name)
+                if match:
+                    num = int(match.group(1))
+                    unit = match.group(2)
+                    
+                    if unit == 'W':
+                        new_start = end_bound - timedelta(weeks=num)
+                    elif unit == 'M':
+                        end_ts = pd.Timestamp(end_bound)
+                        new_start = (end_ts - pd.DateOffset(months=num)).date()
+                    elif unit == 'Y':
+                        try:
+                            new_start = end_bound.replace(year=end_bound.year - num)
+                        except ValueError:
+                            # Handle leap year edge case (Feb 29)
+                            new_start = end_bound.replace(year=end_bound.year - num, day=28)
+                else:
+                    # Fallback for unrecognized shortcuts, though ideally all should be handled
+                    print(f"Warning: Unrecognized shortcut '{shortcut_name}'")
+
+            if new_start:
                 new_start = max(new_start, start_bound) if start_bound else new_start
             
             if new_start and new_end:
@@ -261,7 +289,8 @@ if __name__ == "__main__":
     date_selector = DateRangeSelector(
         start=dt.date(2020, 1, 1),
         end=dt.date.today(),
-        value=(dt.date(2024, 1, 1), dt.date.today())
+        value=(dt.date(2024, 1, 1), dt.date.today()),
+        shortcuts=["ALL", "YTD", "1W", "2W", "1M", "3M", "1Y"]
     )
     
     # Create a display that shows the selected value
