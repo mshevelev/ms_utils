@@ -92,15 +92,16 @@ class DateRangeSelector(pn.viewable.Viewer):
             width=320
         )
 
-        # Create shortcut buttons
-        self._button_all = pn.widgets.Button(name='ALL', button_type='primary', width=60, height=35, margin=(5, 2))
-        self._button_ytd = pn.widgets.Button(name='YTD', button_type='primary', width=60, height=35, margin=(5, 2))
-        self._button_1w = pn.widgets.Button(name='1W', button_type='primary', width=60, height=35, margin=(5, 2))
-        self._button_1m = pn.widgets.Button(name='1M', button_type='primary', width=60, height=35, margin=(5, 2))
-        self._button_1y = pn.widgets.Button(name='1Y', button_type='primary', width=60, height=35, margin=(5, 2))
+        self._snapshot_buttons = {
+            'ALL': pn.widgets.Button(name='ALL', button_type='primary', width=60, height=35, margin=(5, 2)),
+            'YTD': pn.widgets.Button(name='YTD', button_type='primary', width=60, height=35, margin=(5, 2)),
+            '1W': pn.widgets.Button(name='1W', button_type='primary', width=60, height=35, margin=(5, 2)),
+            '1M': pn.widgets.Button(name='1M', button_type='primary', width=60, height=35, margin=(5, 2)),
+            '1Y': pn.widgets.Button(name='1Y', button_type='primary', width=60, height=35, margin=(5, 2)),
+        }
 
-        # Set up event handlers
         self._setup_callbacks()
+        
 
     def _parse_date(self, date_input, default=None):
         """
@@ -139,11 +140,50 @@ class DateRangeSelector(pn.viewable.Viewer):
         self._end_input.param.watch(self._on_input_change, 'value')
         self._slider.param.watch(self._on_slider_change, 'value')
 
-        self._button_all.on_click(self._on_all_click)
-        self._button_ytd.on_click(self._on_ytd_click)
-        self._button_1w.on_click(self._on_1w_click)
-        self._button_1m.on_click(self._on_1m_click)
-        self._button_1y.on_click(self._on_1y_click)
+        for name, button in self._snapshot_buttons.items():
+            button.on_click(self._get_date_range_callback(name))
+
+    def _get_date_range_callback(self, shortcut_name):
+        """
+        Generates a callback function for date range shortcut buttons.
+        """
+        def callback(event):
+            today = dt.date.today()
+            # Use the current selected end date for relative calculations, or the max end date for 'ALL'
+            current_selected_end = self.value[1] if self.value and self.value[1] else self.end
+            
+            start_bound = self.start # already initialized
+            end_bound = self.end # already initialized
+
+            new_start = None
+            new_end = end_bound # Always use the maximum selectable end date for relative calculations
+
+            if shortcut_name == 'ALL':
+                new_start = start_bound
+                new_end = end_bound
+            elif shortcut_name == 'YTD':
+                new_start = dt.date(end_bound.year, 1, 1)
+                new_start = max(new_start, start_bound) if start_bound else new_start
+            elif shortcut_name == '1W':
+                new_start = end_bound - timedelta(days=7)
+                new_start = max(new_start, start_bound) if start_bound else new_start
+            elif shortcut_name == '1M':
+                end_ts = pd.Timestamp(end_bound)
+                one_month_ago_ts = end_ts - pd.DateOffset(months=1)
+                new_start = one_month_ago_ts.date()
+                new_start = max(new_start, start_bound) if start_bound else new_start
+            elif shortcut_name == '1Y':
+                try:
+                    new_start = end_bound.replace(year=end_bound.year - 1)
+                except ValueError:
+                    # Handle leap year edge case (Feb 29)
+                    new_start = end_bound.replace(year=end_bound.year - 1, day=28)
+                new_start = max(new_start, start_bound) if start_bound else new_start
+            
+            if new_start and new_end:
+                self._update_all_widgets((new_start, new_end))
+
+        return callback
 
     def _on_input_change(self, event):
         """Handle changes from date input widgets"""
@@ -164,54 +204,6 @@ class DateRangeSelector(pn.viewable.Viewer):
             self._start_input.value = event.new[0]
             self._end_input.value = event.new[1]
 
-    def _on_all_click(self, event):
-        """Select entire date range"""
-        new_value = (self.start, self.end)
-        self._update_all_widgets(new_value)
-
-    def _on_ytd_click(self, event):
-        """Select year-to-date"""
-        if self.end is None: return # Cannot determine YTD without an end date
-        year_start = dt.date(self.end.year, 1, 1)
-        year_start = max(year_start, self.start) if self.start else year_start
-        new_value = (year_start, self.end)
-        self._update_all_widgets(new_value)
-
-    def _on_1w_click(self, event):
-        """Select last 1 week"""
-        if self.end is None: return # Cannot determine 1W without an end date
-        week_ago = self.end - timedelta(days=7)
-        week_ago = max(week_ago, self.start) if self.start else week_ago
-        new_value = (week_ago, self.end)
-        self._update_all_widgets(new_value)
-
-    def _on_1m_click(self, event):
-        """Select last 1 month"""
-        if self.end is None: return # Cannot determine 1M without an end date
-        
-        # Calculate one month prior to the end date using pandas Timestamp for robust handling
-        end_ts = pd.Timestamp(self.end)
-        one_month_ago_ts = end_ts - pd.DateOffset(months=1)
-        month_ago = one_month_ago_ts.date()
-
-        # Ensure the calculated date is not before the start date
-        month_ago = max(month_ago, self.start) if self.start else month_ago
-        new_value = (month_ago, self.end)
-        self._update_all_widgets(new_value)
-
-    def _on_1y_click(self, event):
-        """Select last 1 year"""
-        if self.end is None: return # Cannot determine 1Y without an end date
-        try:
-            year_ago = self.end.replace(year=self.end.year - 1)
-        except ValueError:
-            # Handle leap year edge case (Feb 29)
-            year_ago = self.end.replace(year=self.end.year - 1, day=28)
-        
-        year_ago = max(year_ago, self.start) if self.start else year_ago
-        new_value = (year_ago, self.end)
-        self._update_all_widgets(new_value)
-
     def _update_all_widgets(self, new_value):
         """Update all widgets with new value"""
         # Ensure new_value is a tuple of two dates, handling potential None values
@@ -230,7 +222,7 @@ class DateRangeSelector(pn.viewable.Viewer):
             valid_start, valid_end = valid_end, valid_start # Swap if out of order
 
         # Update internal value and widgets
-        self.value = (valid_start, valid_end)
+        self.param.update(value=(valid_start, valid_end))
         self._start_input.value = valid_start
         self._end_input.value = valid_end
         self._slider.value = (valid_start, valid_end)
@@ -252,11 +244,7 @@ class DateRangeSelector(pn.viewable.Viewer):
         )
         
         buttons_row = pn.Row(
-            self._button_all,
-            self._button_ytd,
-            self._button_1w,
-            self._button_1m,
-            self._button_1y,
+            *self._snapshot_buttons.values(),
             margin=(0, 0, 0, 0)
         )
         

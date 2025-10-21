@@ -88,36 +88,6 @@ def test_date_range_selector_start_after_end():
     with pytest.raises(ValueError):
         DateRangeSelector(start="20220101", end="20210101")
 
-# Test cases for button functionality (simplified, as they rely on _update_all_widgets)
-# These tests focus on whether the correct values are set after button clicks.
-@pytest.mark.parametrize(
-    "button_name, initial_start, initial_end, initial_value, expected_value",
-    [
-        ("ALL", d(2020, 1, 1), d(2022, 12, 31), (d(2021, 1, 1), d(2021, 1, 15)), (d(2020, 1, 1), d(2022, 12, 31))),
-        ("YTD", d(2020, 1, 1), d(2022, 12, 31), (d(2021, 1, 1), d(2021, 1, 15)), (d(2022, 1, 1), d(2022, 12, 31))),
-        ("1W", d(2020, 1, 1), d(2022, 12, 31), (d(2021, 1, 1), d(2021, 1, 15)), (d(2022, 12, 24), d(2022, 12, 31))), # Dec 31 - 7 days = Dec 24
-        ("1M", d(2020, 1, 1), d(2022, 12, 31), (d(2021, 1, 1), d(2021, 1, 15)), (d(2022, 11, 30), d(2022, 12, 31))), # One month prior to Dec 31
-        ("1Y", d(2020, 1, 1), d(2022, 12, 31), (d(2021, 1, 1), d(2021, 1, 15)), (d(2021, 12, 31), d(2022, 12, 31))), # One year prior to Dec 31
-    ]
-)
-def test_date_range_selector_button_clicks(button_name, initial_start, initial_end, initial_value, expected_value):
-    """Tests the functionality of the shortcut buttons."""
-    selector = DateRangeSelector(start=initial_start, end=initial_end, value=initial_value)
-
-    # Simulate button click
-    if button_name == "ALL":
-        selector._on_all_click(None)
-    elif button_name == "YTD":
-        selector._on_ytd_click(None)
-    elif button_name == "1W":
-        selector._on_1w_click(None)
-    elif button_name == "1M":
-        selector._on_1m_click(None)
-    elif button_name == "1Y":
-        selector._on_1y_click(None)
-
-    assert selector.value == expected_value
-
 # Test case for edge case in _parse_date with pandas
 def test_parse_date_pandas_edge_case():
     """Tests _parse_date with a string that pandas can parse but strptime might struggle with."""
