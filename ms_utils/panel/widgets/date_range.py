@@ -139,13 +139,13 @@ class DateRangeSelector(pn.viewable.Viewer):
         self._snapshot_buttons = {}
         for shortcut_name in self.shortcuts:
             self._snapshot_buttons[shortcut_name] = pn.widgets.Button(
-                name=shortcut_name, button_type='primary', width=60, height=35, margin=(5, 2)
+                name=shortcut_name, button_type='primary', width=50, height=35, margin=(5, 2)
             )
         
         self._custom_shortcut_buttons = {}
         for name, (start_val, end_val) in self.custom_shortcuts.items():
             self._custom_shortcut_buttons[name] = pn.widgets.Button(
-                name=name, button_type='danger', width=60, height=35, margin=(5, 2)
+                name=name, button_type='danger', min_width=50, height=35, margin=(5, 2)
             )
 
         self._setup_callbacks()
