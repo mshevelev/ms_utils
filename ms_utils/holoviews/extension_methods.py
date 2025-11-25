@@ -5,13 +5,13 @@ import holoviews as hv
 
 from method_registration import register_method
 
-@register_method(class_=hv.core.dimension.ViewableElement, namespace="ms")
+@register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
 def info(el: hv.core.dimension.ViewableElement) -> hv.core.dimension.ViewableElement:
   """Print information about hv.Element"""
   print(el)
   return el
 
-@register_method(class_=hv.core.dimension.ViewableElement, namespace="ms")
+@register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
 def yformat(el: hv.core.dimension.ViewableElement, format: Literal["$", "usd", "%2", "%", "#", "int"]):
   """Apply one of the predefined yformatters"""
   if   format in ("$", "usd"):  yformatter=bokeh.models.NumeralTickFormatter(format='$0,0.')
@@ -20,7 +20,7 @@ def yformat(el: hv.core.dimension.ViewableElement, format: Literal["$", "usd", "
   else: raise ValueError(f"not supported {format=!r}")
   return el.opts(yformatter=yformatter)
  
-@register_method(class_=hv.core.dimension.ViewableElement, namespace="ms")
+@register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
 def rename_vdim(fig: hv.core.dimension.ViewableElement, name: str):
   """Rename the vdim of the holoviews element.
   Tip: useful to disable syncing on y-axis
@@ -30,13 +30,13 @@ def rename_vdim(fig: hv.core.dimension.ViewableElement, name: str):
  
  
  
-@register_method(class_=hv.element.chart.Bars, namespace="ms")
+@register_method(classes=[hv.element.chart.Bars], namespace="ms")
 def overlay_labels(el:hv.element.chart.Bars, text_font_size='10px', **kwargs)  -> hv.core.overlay.Overlay:
   """Overlay labels on top hv.Bars"""
   labels = hv.Labels(el.data,kdims=el.kdims+el.vdims[:1], vdims=el.vdims[:1]).opts(text_font_size=text_font_size, **kwargs)
   return el * labels
  
-@register_method(class_=hv.element.chart.Curve, namespace="ms")
+@register_method(classes=[hv.element.chart.Curve], namespace="ms")
 def create_avg_line(curve, annotation_pos: Literal['center', 'left', 'right'] = None, agg_func=np.mean) -> hv.Curve:
   """Create a horizontal (dashed) line equal to the average value of the `curve` with optional annotation"""
   kdim = curve.kdims[0].name
@@ -141,7 +141,7 @@ def create_avg_line(curve, annotation_pos: Literal['center', 'left', 'right'] = 
 #    return res
  
  
-#  @register_method(class_=hv.core.dimension.ViewableElement, namespace="ms")
+#  @register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
 #  def yformat(
 #      el: hv.core.dimension.ViewableElement,
 #      format: Literal["$", "usd", "%2", "pct", "%", "#", "int", "num", "$2", "usd2"],
@@ -171,7 +171,7 @@ def create_avg_line(curve, annotation_pos: Literal['center', 'left', 'right'] = 
 #    #   )
 #    return el
  
-#  @register_method(class_=hv.core.dimension.ViewableElement, namespace="ms")
+#  @register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
 #  def rename_vdim(fig: hv.core.dimension.ViewableElement, name: str):
 #    """Rename the vdim of the holoviews element.
 #    If the object is hv.Overlay or hv.NdOverlay recursively apply renaming of vdim to children.
@@ -187,19 +187,19 @@ def create_avg_line(curve, annotation_pos: Literal['center', 'left', 'right'] = 
 #    return fig.redim(**{src_vdim: name})
  
  
-#  @register_method(class_=hv.core.dimension.ViewableElement, namespace="ms")
+#  @register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
 #  def info(el: hv.core.dimension.ViewableElement):
 #    """Print information about hv.Element"""
 #    print(el)
 #    return el
  
-#  @register_method(class_=hv.element.chart.Bars, namespace="ms")
+#  @register_method(classes=[hv.element.chart.Bars], namespace="ms")
 #  def overlay_labels(el:hv.element.chart.Bars, text_font_size='10px', **kwargs)  -> hv.core.overlay.Overlay:
 #    """Overlay labels on top hv.Bars"""
 #    labels = hv.Labels(el.data,kdims=el.kdims+el.vdims[:1], vdims=el.vdims[:1]).opts(text_font_size=text_font_size, **kwargs)
 #    return el * labels
  
-#  @register_method(class_=hv.element.chart.Curve, namespace="ms")
+#  @register_method(classes=[hv.element.chart.Curve], namespace="ms")
 #  def create_avg_line(curve, annotation_pos: Literal['center', 'left', 'right'] = None, agg_func=np.mean) -> hv.Curve:
 #    """Create a horizontal (dashed) line equal to the average value of the `curve` with optional annotation"""
 #    kdim = curve.kdims[0].name
@@ -226,3 +226,105 @@ def create_avg_line(curve, annotation_pos: Literal['center', 'left', 'right'] = 
 #    text = hv.Text(text_pos, value, text=f"{value:.3g}", label=label, valign='top', fontsize=8)
 #    return line * text
 
+
+@register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
+def update_tooltips(el: hv.core.dimension.ViewableElement, tooltips: dict[str, str]):
+  """
+  Update tooltips for the element.
+  
+  Args:
+      el: The HoloViews element.
+      tooltips: A dictionary mapping tooltip labels or field names to format strings.
+                Example: {'Value': '0.00', 'date': '%Y-%m-%d'}
+  """
+  import re
+  from bokeh.models import HoverTool
+
+  if isinstance(el, (hv.NdOverlay, hv.Overlay)):
+    new_items = []
+    for k, v in el.items():
+      new_v = update_tooltips(v, tooltips)
+      new_items.append((k, new_v))
+    
+    # Reconstruct the overlay with updated items
+    # We use type(el) to preserve the exact class (NdOverlay or Overlay)
+    # We also need to preserve other properties/opts
+    new_el = type(el)(new_items, **dict(el.param.values()))
+    # Copy opts from original
+    new_el = new_el.opts(el.opts.get())
+    return new_el
+
+  # Render to Bokeh to get default tooltips
+  try:
+    bokeh_fig = hv.render(el, backend='bokeh')
+  except Exception:
+    # If rendering fails (e.g. some elements might not be renderable directly), return el
+    return el
+
+  current_tooltips = None
+  # Find existing HoverTool
+  if hasattr(bokeh_fig, 'tools'):
+    for tool in bokeh_fig.tools:
+      if isinstance(tool, HoverTool):
+        current_tooltips = tool.tooltips
+        break
+  
+  if not current_tooltips:
+    return el
+
+  new_tooltips = []
+  matched_keys = set()
+
+  for label, value in current_tooltips:
+    # Value format: @field or @{field} or @{field}{format}
+    # Regex to extract field name. 
+    # Matches @field, @{field}, @{field}{fmt}
+    match = re.match(r'@(?:\{([^\}]+)\}|(\w+))', value)
+    field_name = match.group(1) or match.group(2) if match else None
+    
+    # Check if label matches
+    if label in tooltips:
+      new_format = tooltips[label]
+      matched_keys.add(label)
+      # Reconstruct value with new format
+      # We assume value starts with @... and we append {format}
+      # If value is @{field}{old_fmt}, we want @{field}{new_fmt}
+      # We can use the regex match to get the base part
+      if match:
+        base_part = match.group(0) # @{field} or @field
+        if '{' not in base_part: # @field -> @{field}
+             base_part = f"@{{{field_name}}}"
+        new_value = f"{base_part}{{{new_format}}}"
+        new_tooltips.append((label, new_value))
+      else:
+         # Fallback if regex didn't match (e.g. complex expression?)
+         # Just append format?
+         new_tooltips.append((label, value))
+      
+    # Check if field name matches
+    elif field_name and field_name in tooltips:
+      new_format = tooltips[field_name]
+      matched_keys.add(field_name)
+      # Construct new value
+      base_part = match.group(0) # @{field} or @field
+      if '{' not in base_part: # @field -> @{field}
+           base_part = f"@{{{field_name}}}"
+      new_value = f"{base_part}{{{new_format}}}"
+      new_tooltips.append((label, new_value))
+      
+    else:
+      new_tooltips.append((label, value))
+  
+  # Add new tooltips for keys that were not matched
+  for key, fmt in tooltips.items():
+    if key not in matched_keys:
+      # We assume the key is the field name
+      # Format: (key, @{key}{fmt})
+      new_value = f"@{{{key}}}{{{fmt}}}"
+      new_tooltips.append((key, new_value))
+      
+  # Create new HoverTool with updated tooltips
+  hover = HoverTool(tooltips=new_tooltips)
+  
+  # Apply to element
+  return el.opts(tools=[hover])
