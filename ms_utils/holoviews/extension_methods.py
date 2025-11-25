@@ -1,5 +1,6 @@
 from typing import Literal
 import numpy as np
+import pandas as pd
 import bokeh.models
 import holoviews as hv
 
@@ -227,104 +228,150 @@ def create_avg_line(curve, annotation_pos: Literal['center', 'left', 'right'] = 
 #    return line * text
 
 
-@register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
+@register_method(classes=[hv.core.dimension.ViewableElement], namespace='ms')
+def get_tooltips(el: hv.core.dimension.ViewableElement) -> list[tuple[str, str]]:
+    """
+    Returns the list of tooltips for the given element.
+    Returns a list of (label, value) tuples.
+    """
+    import holoviews as hv
+    from bokeh.models import HoverTool
+    # For Overlay/NdOverlay, we might want to look at the first child
+    # or just render the whole thing. Rendering the whole thing is safer
+    # to see what Bokeh actually produces.
+    try:
+        bokeh_fig = hv.render(el, backend='bokeh')
+    except Exception:
+        # If rendering fails (e.g. some elements can't be rendered directly), return empty
+        return []
+
+    hover_tool = None
+    if hasattr(bokeh_fig, 'tools'):
+        for tool in bokeh_fig.tools:
+            if isinstance(tool, HoverTool):
+                hover_tool = tool
+                break
+    
+    if hover_tool:
+        return hover_tool.tooltips
+    return []
+
+
+@register_method(classes=[hv.core.dimension.ViewableElement], namespace='ms')
 def update_tooltips(el: hv.core.dimension.ViewableElement, tooltips: dict[str, str]):
-  """
-  Update tooltips for the element.
-  
-  Args:
-      el: The HoloViews element.
-      tooltips: A dictionary mapping tooltip labels or field names to format strings.
-                Example: {'Value': '0.00', 'date': '%Y-%m-%d'}
-  """
-  import re
-  from bokeh.models import HoverTool
-
-  if isinstance(el, (hv.NdOverlay, hv.Overlay)):
-    new_items = []
-    for k, v in el.items():
-      new_v = update_tooltips(v, tooltips)
-      new_items.append((k, new_v))
+    """
+    Updates the tooltips of the element.
+    'tooltips' is a dictionary where keys are the label OR the field name,
+    and values are the new format string (e.g. '@{field}{format}').
     
-    # Reconstruct the overlay with updated items
-    # We use type(el) to preserve the exact class (NdOverlay or Overlay)
-    # We also need to preserve other properties/opts
-    new_el = type(el)(new_items, **dict(el.param.values()))
-    # Copy opts from original
-    new_el = new_el.opts(el.opts.get())
-    return new_el
+    If a key matches an existing tooltip label or field name, that tooltip is updated.
+    If a key does not match, a new tooltip is added.
+    """
+    import re
+    from bokeh.models import HoverTool
 
-  # Render to Bokeh to get default tooltips
-  try:
-    bokeh_fig = hv.render(el, backend='bokeh')
-  except Exception:
-    # If rendering fails (e.g. some elements might not be renderable directly), return el
-    return el
+    # Recursive step for Overlay and NdOverlay
+    if isinstance(el, (hv.Overlay, hv.NdOverlay)):
+        new_items = []
+        for k, v in el.items():
+            new_items.append((k, update_tooltips(v, tooltips)))
+        
+        # Reconstruct the container
+        if isinstance(el, hv.NdOverlay):
+            new_el = hv.NdOverlay(new_items, kdims=el.kdims, label=el.label, group=el.group)
+        else:
+            new_el = hv.Overlay([v for k, v in new_items], label=el.label, group=el.group)
+        
+        # Copy opts from original element
+        # We need to be careful to copy only valid options or just use .opts()
+        # el.opts.get() returns a dictionary of options
+        if hasattr(el, 'opts'):
+             # This gets the options applied to the element
+             opts = el.opts.get()
+             if opts:
+                 new_el = new_el.opts(opts)
+        
+        return new_el
 
-  current_tooltips = None
-  # Find existing HoverTool
-  if hasattr(bokeh_fig, 'tools'):
-    for tool in bokeh_fig.tools:
-      if isinstance(tool, HoverTool):
-        current_tooltips = tool.tooltips
-        break
-  
-  if not current_tooltips:
-    return el
+    # Render to Bokeh to get current tooltips
+    try:
+        bokeh_fig = hv.render(el, backend='bokeh')
+    except Exception:
+        # If rendering fails, just return original element
+        return el
 
-  new_tooltips = []
-  matched_keys = set()
-
-  for label, value in current_tooltips:
-    # Value format: @field or @{field} or @{field}{format}
-    # Regex to extract field name. 
-    # Matches @field, @{field}, @{field}{fmt}
-    match = re.match(r'@(?:\{([^\}]+)\}|(\w+))', value)
-    field_name = match.group(1) or match.group(2) if match else None
+    current_tooltips = []
+    if hasattr(bokeh_fig, 'tools'):
+        for tool in bokeh_fig.tools:
+            if isinstance(tool, HoverTool):
+                current_tooltips = tool.tooltips
+                break
     
-    # Check if label matches
-    if label in tooltips:
-      new_format = tooltips[label]
-      matched_keys.add(label)
-      # Reconstruct value with new format
-      # We assume value starts with @... and we append {format}
-      # If value is @{field}{old_fmt}, we want @{field}{new_fmt}
-      # We can use the regex match to get the base part
-      if match:
-        base_part = match.group(0) # @{field} or @field
-        if '{' not in base_part: # @field -> @{field}
-             base_part = f"@{{{field_name}}}"
-        new_value = f"{base_part}{{{new_format}}}"
-        new_tooltips.append((label, new_value))
-      else:
-         # Fallback if regex didn't match (e.g. complex expression?)
-         # Just append format?
-         new_tooltips.append((label, value))
-      
-    # Check if field name matches
-    elif field_name and field_name in tooltips:
-      new_format = tooltips[field_name]
-      matched_keys.add(field_name)
-      # Construct new value
-      base_part = match.group(0) # @{field} or @field
-      if '{' not in base_part: # @field -> @{field}
-           base_part = f"@{{{field_name}}}"
-      new_value = f"{base_part}{{{new_format}}}"
-      new_tooltips.append((label, new_value))
-      
-    else:
-      new_tooltips.append((label, value))
-  
-  # Add new tooltips for keys that were not matched
-  for key, fmt in tooltips.items():
-    if key not in matched_keys:
-      # We assume the key is the field name
-      # Format: (key, @{key}{fmt})
-      new_value = f"@{{{key}}}{{{fmt}}}"
-      new_tooltips.append((key, new_value))
-      
-  # Create new HoverTool with updated tooltips
-  hover = HoverTool(tooltips=new_tooltips)
-  
-  # Apply to element
-  return el.opts(tools=[hover])
+    if not current_tooltips:
+        # If no tooltips found, start with empty list
+        current_tooltips = []
+
+    new_tooltips = []
+    processed_keys = set()
+    formatters = {}
+
+    # Helper to extract field name from value string
+    # Matches @field, @{field}, @{field}{format}
+    # Group 1: field name inside {}, Group 2: field name without {}
+    field_regex = re.compile(r'@(?:\{([^\}]+)\}|(\w+))')
+    
+    # Regex to detect datetime format codes (%, followed by letter)
+    datetime_format_regex = re.compile(r'%[a-zA-Z]')
+
+    for label, value in current_tooltips:
+        updated = False
+        field_name = None
+        
+        match = field_regex.search(value)
+        if match:
+            field_name = match.group(1) or match.group(2)
+
+        # Check if we should update this tooltip
+        # Match by label
+        if label in tooltips:
+            new_format = tooltips[label]
+            processed_keys.add(label)
+            updated = True
+        # Match by field name
+        elif field_name and field_name in tooltips:
+            new_format = tooltips[field_name]
+            processed_keys.add(field_name)
+            updated = True
+        
+        if updated:
+            # Construct new value string. 
+            if '@' in new_format:
+                 new_value = new_format
+            else:
+                if not field_name:
+                    new_value = value 
+                else:
+                    new_value = f"@{{{field_name}}}{{{new_format}}}"
+                    # Check if this is a datetime format
+                    if datetime_format_regex.search(new_format):
+                        formatters[f"@{{{field_name}}}"] = 'datetime'
+            new_tooltips.append((label, new_value))
+        else:
+            new_tooltips.append((label, value))
+
+    # Add new tooltips for keys that weren't matched
+    for key, format_str in tooltips.items():
+        if key not in processed_keys:
+            # Assume key is the field name
+            if '@' in format_str:
+                new_value = format_str
+            else:
+                new_value = f"@{{{key}}}{{{format_str}}}"
+                # Check if this is a datetime format
+                if datetime_format_regex.search(format_str):
+                    formatters[f"@{{{key}}}"] = 'datetime'
+            new_tooltips.append((key, new_value))
+
+    # Apply the updated tooltips with formatters
+    hover = HoverTool(tooltips=new_tooltips, formatters=formatters if formatters else None)
+    return el.opts(tools=[hover])
