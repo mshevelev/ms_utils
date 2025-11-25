@@ -301,10 +301,14 @@ def update_tooltips(el: hv.core.dimension.ViewableElement, tooltips: dict[str, s
         return el
 
     current_tooltips = []
+    current_formatters = {}
     if hasattr(bokeh_fig, 'tools'):
         for tool in bokeh_fig.tools:
             if isinstance(tool, HoverTool):
                 current_tooltips = tool.tooltips
+                # Preserve existing formatters
+                if hasattr(tool, 'formatters') and tool.formatters:
+                    current_formatters = dict(tool.formatters)
                 break
     
     if not current_tooltips:
@@ -313,7 +317,7 @@ def update_tooltips(el: hv.core.dimension.ViewableElement, tooltips: dict[str, s
 
     new_tooltips = []
     processed_keys = set()
-    formatters = {}
+    formatters = dict(current_formatters)  # Start with existing formatters
 
     # Helper to extract field name from value string
     # Matches @field, @{field}, @{field}{format}
@@ -373,5 +377,8 @@ def update_tooltips(el: hv.core.dimension.ViewableElement, tooltips: dict[str, s
             new_tooltips.append((key, new_value))
 
     # Apply the updated tooltips with formatters
-    hover = HoverTool(tooltips=new_tooltips, formatters=formatters if formatters else None)
+    if formatters:
+        hover = HoverTool(tooltips=new_tooltips, formatters=formatters)
+    else:
+        hover = HoverTool(tooltips=new_tooltips)
     return el.opts(tools=[hover])
