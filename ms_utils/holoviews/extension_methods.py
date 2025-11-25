@@ -3,7 +3,7 @@ import numpy as np
 import bokeh.models
 import holoviews as hv
 
-from method_registration import register_method
+from ms_utils.method_registration import register_method
 
 @register_method(classes=[hv.core.dimension.ViewableElement], namespace="ms")
 def info(el: hv.core.dimension.ViewableElement) -> hv.core.dimension.ViewableElement:
