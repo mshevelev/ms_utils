@@ -32,10 +32,10 @@ You can also run the Snippet Manager as a standalone web application using the p
 
 ```bash
 # Run with default settings (looks for snippets in /home/mshevelev/git/snippets)
-python app.py
+python ms_utils/panel/snippet_manager/app.py
 
 # Specify a custom snippets folder and port
-python app.py --snippet_folder /path/to/my/snippets --port 5006
+python ms_utils/panel/snippet_manager/app.py --snippet_folder /path/to/my/snippets --port 5006
 ```
 
 ## File Format
