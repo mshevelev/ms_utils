@@ -1,0 +1,13 @@
+[tool.ruff]
+# Black-style formatting
+line-length = 120      # 120-column line width
+indent-width = 4       # 4-space indentation
+
+# Which files
+include = ["*.py"]
+exclude = [ ]
+
+[tool.ruff.format]
+# Use `\n` line endings for all files
+line-ending = "lf"
+
