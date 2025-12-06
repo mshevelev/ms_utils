@@ -134,7 +134,7 @@ class SnippetManager:
       height=300
       )
 
-    self._editor = pn.widgets.CodeEditor(value="", sizing_mode='stretch_width', readonly=True,  height=400)
+    self._editor = pn.widgets.CodeEditor(value="", sizing_mode='stretch_width', readonly=False,  height=400)
     self._tag_select = pn.widgets.MultiChoice(
       options=list(self._tag_list),
       value=[],
@@ -144,9 +144,14 @@ class SnippetManager:
     self._search_input = pn.widgets.TextInput(name='Search content', placeholder='Enter text...', width=300)
     self._file_path = pn.widgets.StaticText(name='File Path', value="")
     
+    self._save_btn = pn.widgets.Button(name='Save', button_type='primary', width=100)
+    self._reload_btn = pn.widgets.Button(name='Reload', button_type='warning', width=100)
+
     self._file_select.param.watch(self._file_select_callback, ["value"], onlychanged=False)
     self._tag_select.param.watch(self._tag_select_callback, ["value"], onlychanged=False)
     self._search_input.param.watch(self._search_callback, ["value"], onlychanged=False)
+    self._save_btn.on_click(self._save_callback)
+    self._reload_btn.on_click(self._reload_callback)
     
     root_folder_display = pn.widgets.StaticText(name='Root Folder', value=self.root_folder)
     layout = pn.Column(
@@ -159,11 +164,32 @@ class SnippetManager:
         pn.Column(
           self._search_input,
           self._file_path,
+          pn.Row(self._save_btn, self._reload_btn),
           self._editor
         )
       )
     )
     return layout
+
+  def _save_callback(self, event):
+    filepath = self._file_path.value
+    if filepath and os.path.isfile(filepath):
+      try:
+        with open(filepath, 'w') as f:
+          f.write(self._editor.value)
+        print(f"Saved {filepath}")
+      except Exception as e:
+        print(f"Error saving {filepath}: {e}")
+
+  def _reload_callback(self, event):
+    filepath = self._file_path.value
+    if filepath and os.path.isfile(filepath):
+      try:
+        with open(filepath, 'r') as f:
+          self._editor.value = f.read()
+        print(f"Reloaded {filepath}")
+      except Exception as e:
+        print(f"Error reloading {filepath}: {e}")
 
   def display(self, renderer="panel"):
     if renderer == "panel":
