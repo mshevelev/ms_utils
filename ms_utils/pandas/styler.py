@@ -4,11 +4,11 @@ from pandas.io.formats.style import Styler
 import panel as pn
 from typing import Sequence
 
-from method_registration import register_method
-from string_formatters import get_formatter
+from ms_utils.method_registration import register_method
+from ms_utils.string_formatters import get_formatter
 
 
-@register_method(class_=Styler, namespace="ms")
+@register_method([Styler], namespace="ms")
 def style_describe_table(styler: Styler, formatter=None):
     df = styler.data
     subset_pct = pd.IndexSlice[df.index.str.startswith("pct_"), :]
@@ -24,7 +24,7 @@ def style_describe_table(styler: Styler, formatter=None):
     return res
 
 
-@register_method(class_=Styler, namespace="ms")
+@register_method([Styler], namespace="ms")
 def style_corr_matrix(
     styler: Styler,
     show_upper_triangle=False,
@@ -46,13 +46,13 @@ def style_corr_matrix(
     return res
 
 
-@register_method(class_=Styler, namespace="ms")
+@register_method([Styler], namespace="ms")
 def panel(styler: Styler, **kwargs):
     """Wrap an object into pn.panel for display in panel layouts"""
     return pn.panel(styler, **kwargs)
 
 
-@register_method(class_=Styler, namespace="ms")
+@register_method([Styler], namespace="ms")
 def format(
     styler: Styler,
     formatter: "ExtFormatter | None" = None,
