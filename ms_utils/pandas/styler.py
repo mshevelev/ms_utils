@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas.io.formats.style import Styler
 import panel as pn
-from typing import Sequence
+from typing import Sequence, Literal
 
 from ms_utils.method_registration import register_method
 from ms_utils.string_formatters import get_formatter
@@ -89,33 +89,86 @@ def format(
 
 
 @register_method([Styler], namespace="ms")
-def left_align_index(styler: Styler):
-    """Left-align index columns in the styled DataFrame.
+def align_index(
+    styler: Styler,
+    align: Literal['left', 'right', 'center'] = 'left',
+    *,
+    align_header: bool = True,
+    align_index_values: bool = True
+):
+    """Align index columns (headers and/or values) in the styled DataFrame.
 
-    By default, pandas Styler right-aligns index columns. This method applies
-    CSS to left-align them for better readability, especially for text-based indices.
+    By default, pandas Styler right-aligns index columns. This method allows you to
+    control the alignment of both index headers and index values independently.
 
     Parameters
     ----------
     styler : Styler
         The Styler object to modify.
+    align : {'left', 'right', 'center'}, default 'left'
+        Text alignment to apply.
+    align_header : bool, default True
+        Whether to align index header cells (the index name labels).
+    align_index_values : bool, default True
+        Whether to align index value cells (the actual index values).
 
     Returns
     -------
     Styler
-        The modified Styler with left-aligned index columns.
+        The modified Styler with aligned index columns.
 
     Examples
     --------
     >>> import pandas as pd
-    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
-    ...                   index=['Row 1', 'Row 2', 'Row 3'])
-    >>> df.style.ms.left_align_index()
+
+    **Left-align index (default):**
+
+    >>> df = pd.DataFrame({'A': [1, 2]}, index=['Row 1', 'Row 2'])
+    >>> df.style.ms.align_index()
+
+    **Center-align index:**
+
+    >>> df.style.ms.align_index('center')
+
+    **Only align values, not headers:**
+
+    >>> df.style.ms.align_index('left', align_header=False)
+
+    **With MultiIndex:**
+
+    >>> arrays = [['A', 'A', 'B'], ['X', 'Y', 'X']]
+    >>> idx = pd.MultiIndex.from_arrays(arrays, names=['First', 'Second'])
+    >>> df = pd.DataFrame({'Value': [1, 2, 3]}, index=idx)
+    >>> df.style.ms.align_index('left')  # Aligns both levels
 
     Notes
     -----
-    This method uses CSS selectors to target index `th` elements with class `row_heading`.
-    Works with both single and MultiIndex.
+    - Uses CSS selectors to target index elements:
+      - `th.index_name`: Index header cells (e.g., "Date", "Stock")
+      - `th.row_heading`: Index value cells (e.g., "2023-01-01", "AAPL")
+    - Works with both single index and MultiIndex
+    - Setting `align_header=False` and `align_index_values=False` returns unchanged styler
     """
-    # Use set_table_styles to target the index cells specifically
-    return styler.set_table_styles([{"selector": "th.row_heading", "props": [("text-align", "left")]}], overwrite=False)
+    styles = []
+
+    if align_index_values:
+        # Target the index value cells (th.row_heading)
+        styles.append({
+            'selector': 'th.row_heading',
+            'props': [('text-align', align)]
+        })
+
+    if align_header:
+        # Target the index header cells (th.index_name)
+        styles.append({
+            'selector': 'th.index_name',
+            'props': [('text-align', align)]
+        })
+
+    if styles:
+        return styler.set_table_styles(styles, overwrite=False)
+    else:
+        return styler
+
+
+
