@@ -88,3 +88,34 @@ def format(
     # .format("{:.3g}", subset=s.data.select_dtypes(include=float).columns
 
 
+@register_method([Styler], namespace="ms")
+def left_align_index(styler: Styler):
+    """Left-align index columns in the styled DataFrame.
+
+    By default, pandas Styler right-aligns index columns. This method applies
+    CSS to left-align them for better readability, especially for text-based indices.
+
+    Parameters
+    ----------
+    styler : Styler
+        The Styler object to modify.
+
+    Returns
+    -------
+    Styler
+        The modified Styler with left-aligned index columns.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+    ...                   index=['Row 1', 'Row 2', 'Row 3'])
+    >>> df.style.ms.left_align_index()
+
+    Notes
+    -----
+    This method uses CSS selectors to target index `th` elements with class `row_heading`.
+    Works with both single and MultiIndex.
+    """
+    # Use set_table_styles to target the index cells specifically
+    return styler.set_table_styles([{"selector": "th.row_heading", "props": [("text-align", "left")]}], overwrite=False)
