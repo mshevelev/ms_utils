@@ -233,13 +233,14 @@ def register_method(classes: list, namespace: str = None, if_exists: str = None)
                         f"Method '{class_.__name__}.{namespace}.{name}' already registered. Skipping."
                     )
                     continue
-                elif conflict_mode == 'override':
+                elif conflict_mode == "override":
                     logging.warning(
                         f"Overriding '{class_.__name__}.{namespace}.{name}' already registered."
                     )
-                    setattr(_ns, name, func)
                 else:
                     raise ValueError(f"Invalid conflict mode: {conflict_mode}")
+
+            setattr(_ns, name, func)
         return func
 
     return decorator
