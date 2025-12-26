@@ -91,10 +91,10 @@ def format(
 @register_method([Styler])
 def align_index(
     styler: Styler,
-    align: Literal['left', 'right', 'center'] = 'left',
+    align: Literal["left", "right", "center"] = "left",
     *,
     align_header: bool = True,
-    align_index_values: bool = True
+    align_index_values: bool = True,
 ):
     """Align index columns (headers and/or values) in the styled DataFrame.
 
@@ -153,22 +153,13 @@ def align_index(
 
     if align_index_values:
         # Target the index value cells (th.row_heading)
-        styles.append({
-            'selector': 'th.row_heading',
-            'props': [('text-align', align)]
-        })
+        styles.append({"selector": "th.row_heading", "props": [("text-align", align)]})
 
     if align_header:
         # Target the index header cells (th.index_name)
-        styles.append({
-            'selector': 'th.index_name',
-            'props': [('text-align', align)]
-        })
+        styles.append({"selector": "th.index_name", "props": [("text-align", align)]})
 
     if styles:
         return styler.set_table_styles(styles, overwrite=False)
     else:
         return styler
-
-
-
