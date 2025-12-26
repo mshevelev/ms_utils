@@ -7,6 +7,7 @@ import re
 
 pn.extension()
 
+
 class DateRangeSelector(pn.viewable.Viewer):
     """
     A custom date range selector widget that provides multiple ways to select dates:
@@ -40,12 +41,24 @@ class DateRangeSelector(pn.viewable.Viewer):
     # Allow None and datetime.date objects
     start = param.Date(default=None, doc="Minimum selectable date")
     end = param.Date(default=None, doc="Maximum selectable date")
-    shortcuts = param.List(default=["ALL", "YTD", "1W", "1M", "1Y"], allow_None=True, doc="List of shortcut buttons to display")
+    shortcuts = param.List(
+        default=["ALL", "YTD", "1W", "1M", "1Y"], allow_None=True, doc="List of shortcut buttons to display"
+    )
     custom_shortcuts = param.Dict(default=None, allow_None=True, doc="Dictionary of custom date range shortcuts")
     name = param.String(default="Date Range", doc="Name of the date range selector, used as the card title.")
     throttled = param.Boolean(default=True, doc="Whether the DateRangeSlider should be throttled.")
 
-    def __init__(self, start=None, end=None, value=None, shortcuts=None, custom_shortcuts=None, name=None, throttled=False, **params):
+    def __init__(
+        self,
+        start=None,
+        end=None,
+        value=None,
+        shortcuts=None,
+        custom_shortcuts=None,
+        name=None,
+        throttled=False,
+        **params,
+    ):
         # Parse and set default start date
         parsed_start = self._parse_date(start, default=dt.date(2020, 1, 1))
         # Parse and set default end date
@@ -77,58 +90,67 @@ class DateRangeSelector(pn.viewable.Viewer):
             # Ensure value is a tuple of two elements
             if not isinstance(value, (tuple, list)) or len(value) != 2:
                 raise ValueError("Value must be a tuple or list of two elements.")
-            
+
             parsed_value_start = self._parse_date(value[0])
             parsed_value_end = self._parse_date(value[1])
-            
+
             # Handle None values in the parsed tuple by using start/end defaults
             if parsed_value_start is None:
                 parsed_value_start = parsed_start
             if parsed_value_end is None:
                 parsed_value_end = parsed_end
-            
+
             parsed_value = (parsed_value_start, parsed_value_end)
 
         # Ensure start <= end for the initial setup
         if parsed_start and parsed_end and parsed_start > parsed_end:
             raise ValueError("Start date cannot be after end date.")
-        
+
         # Ensure value dates are within start and end bounds if provided
         if parsed_value and parsed_start and parsed_value[0] is not None and parsed_value[0] < parsed_start:
             parsed_value = (parsed_start, parsed_value[1])
         if parsed_value and parsed_end and parsed_value[1] is not None and parsed_value[1] > parsed_end:
             parsed_value = (parsed_value[0], parsed_end)
-        
+
         # If after parsing, value is still None, set it to the range
         if parsed_value is None or (parsed_value[0] is None and parsed_value[1] is None):
-             parsed_value = (parsed_start, parsed_end)
+            parsed_value = (parsed_start, parsed_end)
 
-        super().__init__(start=parsed_start, end=parsed_end, value=parsed_value, shortcuts=self.shortcuts, custom_shortcuts=self.custom_shortcuts, name=name if name is not None else self.name, throttled=throttled, **params)
+        super().__init__(
+            start=parsed_start,
+            end=parsed_end,
+            value=parsed_value,
+            shortcuts=self.shortcuts,
+            custom_shortcuts=self.custom_shortcuts,
+            name=name if name is not None else self.name,
+            throttled=throttled,
+            **params,
+        )
 
         # Create the date input widgets
         self._start_input = pn.widgets.DatetimeInput(
-            name='From:',
+            name="From:",
             value=datetime.combine(self.value[0], datetime.min.time()) if self.value[0] else None,
             start=datetime.combine(self.start, datetime.min.time()) if self.start else None,
             end=datetime.combine(self.end, datetime.min.time()) if self.end else None,
-            format='%Y-%m-%d',
-            placeholder='YYYY-MM-DD',
-            width=100
+            format="%Y-%m-%d",
+            placeholder="YYYY-MM-DD",
+            width=100,
         )
 
         self._end_input = pn.widgets.DatetimeInput(
-            name='To:',
+            name="To:",
             value=datetime.combine(self.value[1], datetime.min.time()) if self.value[1] else None,
             start=datetime.combine(self.start, datetime.min.time()) if self.start else None,
             end=datetime.combine(self.end, datetime.min.time()) if self.end else None,
-            format='%Y-%m-%d',
-            placeholder='YYYY-MM-DD',
-            width=100
+            format="%Y-%m-%d",
+            placeholder="YYYY-MM-DD",
+            width=100,
         )
 
         # Create the date range slider
         self._slider = pn.widgets.DateRangeSlider(
-            name='',
+            name="",
             start=self.start,
             end=self.end,
             value=self.value,
@@ -139,18 +161,17 @@ class DateRangeSelector(pn.viewable.Viewer):
         self._snapshot_buttons = {}
         for shortcut_name in self.shortcuts:
             self._snapshot_buttons[shortcut_name] = pn.widgets.Button(
-                name=shortcut_name, button_type='primary', width=50, height=35, margin=(5, 2)
+                name=shortcut_name, button_type="primary", width=50, height=35, margin=(5, 2)
             )
-        
+
         self._custom_shortcut_buttons = {}
         for name, (start_val, end_val) in self.custom_shortcuts.items():
             self._custom_shortcut_buttons[name] = pn.widgets.Button(
-                name=name, button_type='danger', min_width=50, height=35, margin=(5, 2)
+                name=name, button_type="danger", min_width=50, height=35, margin=(5, 2)
             )
 
         self._setup_callbacks()
-        
-        
+
     def _parse_date(self, date_input, default=None):
         """
         Parses a date input, which can be a string, datetime.date, datetime.datetime, or None.
@@ -158,7 +179,7 @@ class DateRangeSelector(pn.viewable.Viewer):
         """
         if date_input is None:
             return default
-        
+
         if isinstance(date_input, datetime):
             return date_input.date()
         elif isinstance(date_input, dt.date):
@@ -184,13 +205,13 @@ class DateRangeSelector(pn.viewable.Viewer):
 
     def _setup_callbacks(self):
         """Set up all the callbacks for syncing between widgets"""
-        self._start_input.param.watch(self._on_input_change, 'value')
-        self._end_input.param.watch(self._on_input_change, 'value')
-        self._slider.param.watch(self._on_slider_change, 'value_throttled' if self.throttled else 'value')
+        self._start_input.param.watch(self._on_input_change, "value")
+        self._end_input.param.watch(self._on_input_change, "value")
+        self._slider.param.watch(self._on_slider_change, "value_throttled" if self.throttled else "value")
 
         for name, button in self._snapshot_buttons.items():
             button.on_click(self._get_date_range_callback(name))
-        
+
         for name, button in self._custom_shortcut_buttons.items():
             button.on_click(self._get_custom_date_range_callback(name))
 
@@ -198,36 +219,38 @@ class DateRangeSelector(pn.viewable.Viewer):
         """
         Generates a callback function for date range shortcut buttons.
         """
+
         def callback(event):
             today = dt.date.today()
             # Use the current selected end date for relative calculations, or the max end date for 'ALL'
             current_selected_end = self.value[1] if self.value and self.value[1] else self.end
-            
-            start_bound = self.start # already initialized
-            end_bound = self.end # already initialized
+
+            start_bound = self.start  # already initialized
+            end_bound = self.end  # already initialized
 
             new_start = None
-            new_end = end_bound # Always use the maximum selectable end date for relative calculations
+            new_end = end_bound  # Always use the maximum selectable end date for relative calculations
 
-            if shortcut_name == 'ALL':
+            if shortcut_name == "ALL":
                 new_start = start_bound
                 new_end = end_bound
-            elif shortcut_name == 'YTD':
+            elif shortcut_name == "YTD":
                 new_start = dt.date(end_bound.year, 1, 1)
             else:
                 # Handle N-week, N-month, N-year shortcuts
                 import re
-                match = re.match(r'(\d+)([WMY])', shortcut_name)
+
+                match = re.match(r"(\d+)([WMY])", shortcut_name)
                 if match:
                     num = int(match.group(1))
                     unit = match.group(2)
-                    
-                    if unit == 'W':
+
+                    if unit == "W":
                         new_start = end_bound - timedelta(weeks=num)
-                    elif unit == 'M':
+                    elif unit == "M":
                         end_ts = pd.Timestamp(end_bound)
                         new_start = (end_ts - pd.DateOffset(months=num)).date()
-                    elif unit == 'Y':
+                    elif unit == "Y":
                         try:
                             new_start = end_bound.replace(year=end_bound.year - num)
                         except ValueError:
@@ -239,7 +262,7 @@ class DateRangeSelector(pn.viewable.Viewer):
 
             if new_start:
                 new_start = max(new_start, start_bound) if start_bound else new_start
-            
+
             if new_start and new_end:
                 self._update_all_widgets((new_start, new_end))
 
@@ -249,9 +272,10 @@ class DateRangeSelector(pn.viewable.Viewer):
         """
         Generates a callback function for custom date range shortcut buttons.
         """
+
         def callback(event):
             start_val, end_val = self.custom_shortcuts[custom_shortcut_name]
-            
+
             parsed_start = self._parse_date(start_val, default=self.start)
             parsed_end = self._parse_date(end_val, default=self.end)
 
@@ -263,12 +287,12 @@ class DateRangeSelector(pn.viewable.Viewer):
                 parsed_start = max(parsed_start, start_bound)
             if parsed_end and end_bound:
                 parsed_end = min(parsed_end, end_bound)
-            
+
             if parsed_start and parsed_end:
                 self._update_all_widgets((parsed_start, parsed_end))
-            elif parsed_start: # If only start is provided, set end to max
+            elif parsed_start:  # If only start is provided, set end to max
                 self._update_all_widgets((parsed_start, end_bound))
-            elif parsed_end: # If only end is provided, set start to min
+            elif parsed_end:  # If only end is provided, set start to min
                 self._update_all_widgets((start_bound, parsed_end))
 
         return callback
@@ -288,7 +312,7 @@ class DateRangeSelector(pn.viewable.Viewer):
 
     def _on_slider_change(self, event):
         """Handle changes from the slider"""
-        if hasattr(self, '_updating') and self._updating:
+        if hasattr(self, "_updating") and self._updating:
             return
         if event.new:
             self.value = event.new
@@ -311,7 +335,7 @@ class DateRangeSelector(pn.viewable.Viewer):
 
         # Ensure start <= end
         if valid_start and valid_end and valid_start > valid_end:
-            valid_start, valid_end = valid_end, valid_start # Swap if out of order
+            valid_start, valid_end = valid_end, valid_start  # Swap if out of order
 
         # Update internal value and widgets
         self.param.update(value=(valid_start, valid_end))
@@ -320,44 +344,39 @@ class DateRangeSelector(pn.viewable.Viewer):
         self._end_input.value = datetime.combine(valid_end, datetime.min.time())
         self._slider.value = (valid_start, valid_end)
 
-
     def __panel__(self):
         """Create the panel layout"""
         date_inputs = pn.Row(
             self._start_input,
             pn.pane.Markdown("**to**", margin=(10, 10)),
             self._end_input,
-            align='center',
-            margin=(0, 0, 10, 0)
-        )
-        
-        slider_row = pn.Row(
-            self._slider,
-            margin=(0, 0, 10, 0)
-        )
-        
-        buttons_row = pn.Row(
-            *self._snapshot_buttons.values(),
-            margin=(0, 0, 0, 0)
+            align="center",
+            margin=(0, 0, 10, 0),
         )
 
-        custom_buttons_row = pn.Row(
-            *self._custom_shortcut_buttons.values(),
-            margin=(0, 0, 0, 0)
-        ) if self.custom_shortcuts else pn.Column() # Only display if custom_shortcuts exist
-        
+        slider_row = pn.Row(self._slider, margin=(0, 0, 10, 0))
+
+        buttons_row = pn.Row(*self._snapshot_buttons.values(), margin=(0, 0, 0, 0))
+
+        custom_buttons_row = (
+            pn.Row(*self._custom_shortcut_buttons.values(), margin=(0, 0, 0, 0))
+            if self.custom_shortcuts
+            else pn.Column()
+        )  # Only display if custom_shortcuts exist
+
         return pn.Card(
             pn.Column(
                 date_inputs,
                 slider_row,
                 buttons_row,
-                custom_buttons_row, # Add custom buttons row
-                width=350
+                custom_buttons_row,  # Add custom buttons row
+                width=350,
             ),
             title=self.name,
-            width=380, # Adjust card width to accommodate inner content and padding
-            collapsible=False
+            width=380,  # Adjust card width to accommodate inner content and padding
+            collapsible=False,
         )
+
 
 # Example usage
 if __name__ == "__main__":
@@ -372,16 +391,16 @@ if __name__ == "__main__":
             "Last Year": (dt.date.today().replace(year=dt.date.today().year - 1), dt.date.today()),
             "Custom Period": ("20230101", "20230630"),
             "Start to Today": (dt.date(2020, 1, 1), None),
-            "Today to End": (None, dt.date.today())
-        }
+            "Today to End": (None, dt.date.today()),
+        },
     )
-    
+
     # Create a display that shows the selected value
     def display_selection(value):
         if value:
             return f"**Selected Range:** {value[0]} to {value[1]}"
         return "No selection"
-    
+
     # Create the dashboard
     dashboard = pn.template.FastListTemplate(
         title="Date Range Selector Demo",
@@ -390,17 +409,19 @@ if __name__ == "__main__":
             date_selector,
             pn.pane.Markdown("---"),
             "### Current Selection:",
-            pn.bind(display_selection, date_selector.param.value)
+            pn.bind(display_selection, date_selector.param.value),
         ],
-        main=[]
+        main=[],
     )
-    
+
     # Display in notebook or serve
     # For Jupyter notebook, just display the widget:
-    display(pn.Column(
-        "# Custom Date Range Selector Widget",
-        date_selector,
-        pn.pane.Markdown("---"),
-        "### Selected Value:",
-        pn.bind(display_selection, date_selector.param.value)
-    ))
+    display(
+        pn.Column(
+            "# Custom Date Range Selector Widget",
+            date_selector,
+            pn.pane.Markdown("---"),
+            "### Selected Value:",
+            pn.bind(display_selection, date_selector.param.value),
+        )
+    )

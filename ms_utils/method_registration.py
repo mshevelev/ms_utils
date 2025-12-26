@@ -1,6 +1,6 @@
 """Custom namespace registration system for extending classes with accessor methods.
 
-This module provides a lightweight framework for registering custom methods as 
+This module provides a lightweight framework for registering custom methods as
 namespace accessors on existing classes (similar to pandas' `.str`, `.dt` accessors).
 It enables clean extension of third-party classes without modifying their source code.
 
@@ -39,26 +39,28 @@ Notes
 - Compatible with pandas/xarray `_accessors` pattern for namespace discovery
 """
 
-import functools 
+import functools
+import logging
 from . import config
- 
+
+
 class NamespaceInstance:
     """Instance-level wrapper that binds namespace methods to a specific object.
-    
+
     This class is returned when accessing a `namespace` attribute on an instance
     (e.g., `df.custom`). It intercepts attribute access and automatically binds
     the instance as the first argument to namespace methods.
-    
+
     The binding mechanism allows registered methods to work like instance methods,
     receiving the object they're called on as their first parameter.
-    
+
     Parameters
     ----------
     namespace : CustomNamespace
         The namespace descriptor containing registered methods
     instance : object
         The instance to bind methods to
-    
+
     Examples
     --------
     >>> # When you access df.custom, a NamespaceInstance is created
@@ -67,7 +69,7 @@ class NamespaceInstance:
     >>> # Calling methods automatically passes 'df' as first argument
     >>> ns_instance.method()  # Equivalent to method(df)
     """
-    
+
     def __init__(self, namespace, instance):
         self._namespace = namespace
         self._instance = instance
@@ -82,7 +84,7 @@ class NamespaceInstance:
             return attr
 
         method = self._namespace.__getattribute__(name)
-        
+
         @functools.wraps(method)
         def _wrapper(*args, **kwargs):
             return method(self._instance, *args, **kwargs)
@@ -92,21 +94,21 @@ class NamespaceInstance:
     def __dir__(self) -> list[str]:
         """Return list of available methods in the namespace."""
         return self._namespace.__dir__()
-  
+
 
 class CustomNamespace:
     """Descriptor that creates namespaced method accessors on classes.
-    
+
     This descriptor implements the descriptor protocol to provide different behavior
     when accessed from a class vs. an instance:
     - Class access (e.g., `DataFrame.custom`): Returns the descriptor itself
     - Instance access (e.g., `df.custom`): Returns a NamespaceInstance bound to that instance
-    
+
     Parameters
     ----------
     name : str
         The name of the namespace (e.g., 'custom', 'ms', 'ml')
-    
+
     Examples
     --------
     >>> # Typically created automatically by register_method
@@ -114,20 +116,20 @@ class CustomNamespace:
     >>> # Methods are added via setattr
     >>> setattr(namespace, 'my_method', my_function)
     """
-    
+
     def __init__(self, name: str) -> None:
         self._name = name
-    
+
     def __get__(self, obj, cls):
         """Descriptor protocol: return self for class access, NamespaceInstance for instance access.
-        
+
         Parameters
         ----------
         obj : object or None
             The instance that the descriptor is accessed from (None if class access)
         cls : type
             The class that owns the descriptor
-        
+
         Returns
         -------
         CustomNamespace or NamespaceInstance
@@ -138,13 +140,13 @@ class CustomNamespace:
         return NamespaceInstance(self, obj)
 
 
-def register_method(classes: list, namespace: str = None):
+def register_method(classes: list, namespace: str = None, if_exists: str = None):
     """Decorator to register a function as a method in a namespace on multiple classes.
-    
+
     This decorator adds the decorated function to a specified namespace on one or more
     classes. If the namespace doesn't exist, it creates a CustomNamespace descriptor.
     The function will be callable as `instance.namespace.function_name()`.
-    
+
     Parameters
     ----------
     classes : list of type
@@ -152,12 +154,18 @@ def register_method(classes: list, namespace: str = None):
     namespace : str, optional
         Name of the namespace to add the method to (e.g., 'custom', 'ms').
         If None, use config.DEFAULT_NAMESPACE.
-    
+    if_exists : {'raise', 'override', 'ignore'}, optional
+        How to handle if a method with the same name already exists in the namespace.
+        - 'raise': Raise a ValueError (default, unless configured otherwise).
+        - 'override': Overwrite the existing method.
+        - 'ignore': Skip registration and log a warning.
+        If None, uses config.REGISTRATION_CONFLICT_MODE.
+
     Returns
     -------
     callable
         Decorator function that registers the wrapped function
-    
+
     Notes
     -----
     - The decorated function's first parameter receives the instance automatically
@@ -165,29 +173,29 @@ def register_method(classes: list, namespace: str = None):
       (this is used by pandas/xarray for namespace discovery)
     - Multiple methods can be registered to the same namespace
     - The same method can be registered on multiple classes
-    
+
     Examples
     --------
     **Basic usage with a single class:**
-    
+
     >>> @register_method([pd.DataFrame], namespace='stats')
     ... def summary(df):
     ...     return df.describe()
-    >>> 
+    >>>
     >>> df = pd.DataFrame({'a': [1, 2, 3]})
     >>> df.stats.summary()  # Calls summary(df)
-    
+
     **Register on multiple classes:**
-    
+
     >>> @register_method([pd.DataFrame, pd.Series], namespace='custom')
     ... def info(obj):
     ...     return f"Type: {type(obj).__name__}, Shape: {obj.shape}"
     >>>
     >>> df.custom.info()  # Works on DataFrame
     >>> series.custom.info()  # Also works on Series
-    
+
     **Multiple methods in the same namespace:**
-    
+
     >>> @register_method([pd.DataFrame], namespace='ml')
     ... def scale(df):
     ...     return (df - df.mean()) / df.std()
@@ -202,14 +210,33 @@ def register_method(classes: list, namespace: str = None):
     if namespace is None:
         namespace = config.DEFAULT_NAMESPACE
 
+    conflict_mode = if_exists or config.REGISTRATION_CONFLICT_MODE
+
     def decorator(func):
+        name = func.__name__
         for class_ in classes:
             if not hasattr(class_, namespace):
                 setattr(class_, namespace, CustomNamespace(name=namespace))
-                if hasattr(class_, '_accessors'):
+                if hasattr(class_, "_accessors"):
                     class_._accessors.add(namespace)
             _ns = getattr(class_, namespace)
-            setattr(_ns, func.__name__, func)
-        return func
-    return decorator
 
+            # Handle conflicts
+            if hasattr(_ns, name):
+                if conflict_mode == "raise":
+                    raise ValueError(
+                        f"Conflict in namespace '{namespace}' on {class_.__name__}: "
+                        f"Method '{name}' is already registered."
+                    )
+                elif conflict_mode == "ignore":
+                    logging.warning(
+                        f"Conflict in namespace '{namespace}' on {class_.__name__}: "
+                        f"Method '{name}' is already registered. Skipping."
+                    )
+                    continue
+                # 'override' proceeds to setattr
+
+            setattr(_ns, name, func)
+        return func
+
+    return decorator

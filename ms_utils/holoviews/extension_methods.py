@@ -24,12 +24,12 @@ def info(el: hv.core.dimension.Dimensioned) -> hv.core.dimension.Dimensioned:
 
 def get_format_string(format_alias: str) -> tuple[str, str]:
     """Resolve format alias to format string and type.
-    
+
     Parameters
     ----------
     format_alias : str
         Format alias like '$', 'usd', '%', 'int', 'date', etc.
-    
+
     Returns
     -------
     tuple[str, str]
@@ -54,7 +54,7 @@ def get_format_string(format_alias: str) -> tuple[str, str]:
 @register_method(classes=[hv.core.dimension.Dimensioned])
 def format_axis(el: hv.core.dimension.Dimensioned, format: str, axis: Literal["x", "y"]):
     """Apply one of the predefined formatters to x or y axis.
-    
+
     Parameters
     ----------
     el : hv.core.dimension.Dimensioned
@@ -63,14 +63,14 @@ def format_axis(el: hv.core.dimension.Dimensioned, format: str, axis: Literal["x
         Format alias like '$', 'usd', '%', 'int', 'date', etc.
     axis : Literal["x", "y"]
         Which axis to apply the formatter to
-    
+
     Returns
     -------
     hv.core.dimension.ViewableElement
         Element with formatter applied
     """
     format_string, format_type = get_format_string(format)
-    
+
     if format_type == "numeral":
         formatter = bokeh.models.NumeralTickFormatter(format=format_string)
     elif format_type == "datetime":
@@ -81,18 +81,18 @@ def format_axis(el: hv.core.dimension.Dimensioned, format: str, axis: Literal["x
         formatter.years = [format_string]
     else:
         raise ValueError(f"Unsupported format_type: {format_type}")
-    
+
     if isinstance(el, (hv.Overlay, hv.NdOverlay, hv.Layout, hv.NdLayout)):
         new_items = []
         for k, v in el.items():
             new_items.append((k, format_axis(v, format, axis)))
-        
+
         # Handle different container types
         if isinstance(el, (hv.NdOverlay, hv.NdLayout)):
             result = el.clone(new_items)
         else:
             result = el.clone([v for k, v in new_items])
-        
+
         if hasattr(el, "opts"):
             opts = el.opts.get()
             if opts:
@@ -110,14 +110,14 @@ def format_axis(el: hv.core.dimension.Dimensioned, format: str, axis: Literal["x
 @register_method(classes=[hv.core.dimension.Dimensioned])
 def yformat(el: hv.core.dimension.Dimensioned, format: str):
     """Apply one of the predefined formatters to y-axis.
-    
+
     Parameters
     ----------
     el : hv.core.dimension.Dimensioned
         The HoloViews element or container to format
     format : str
         Format alias like '$', 'usd', '%', 'int', 'date', etc.
-    
+
     Returns
     -------
     hv.core.dimension.ViewableElement
@@ -129,14 +129,14 @@ def yformat(el: hv.core.dimension.Dimensioned, format: str):
 @register_method(classes=[hv.core.dimension.Dimensioned])
 def xformat(el: hv.core.dimension.Dimensioned, format: str):
     """Apply one of the predefined formatters to x-axis.
-    
+
     Parameters
     ----------
     el : hv.core.dimension.Dimensioned
         The HoloViews element or container to format
     format : str
         Format alias like '$', 'usd', '%', 'int', 'date', etc.
-    
+
     Returns
     -------
     hv.core.dimension.ViewableElement
@@ -148,7 +148,7 @@ def xformat(el: hv.core.dimension.Dimensioned, format: str):
 @register_method(classes=[hv.core.dimension.Dimensioned])
 def rename_vdim(fig: hv.core.dimension.Dimensioned, name: str):
     """Rename the vdim of the holoviews element.
-    
+
     If the object is a container (Overlay, Layout, etc.), recursively apply renaming of vdim to children.
     Tip: useful to disable syncing on y-axis.
     """
@@ -160,7 +160,7 @@ def rename_vdim(fig: hv.core.dimension.Dimensioned, name: str):
         if opts:
             result = result.opts(opts)
         return result
-    
+
     src_vdim = fig.vdims[0].name if len(fig.vdims) else "0"
     return fig.redim(**{src_vdim: name})
 
@@ -209,7 +209,7 @@ def plot_ecdf(df: pd.DataFrame, kind: str) -> hv.NdOverlay: ...
 
 def plot_ecdf(s_or_df: Union[pd.DataFrame, pd.Series], kind="scatter"):
     """Create ECDF plot from Series or DataFrame.
-    
+
     Note: For new code, prefer using the ECDF element from ms_utils.holoviews.ecdf.
     """
     assert kind in ["scatter", "line"]
@@ -226,7 +226,7 @@ def plot_ecdf(s_or_df: Union[pd.DataFrame, pd.Series], kind="scatter"):
         return el.opts(width=500)
     elif isinstance(s_or_df, pd.DataFrame):
         res = {col: plot_ecdf(s_or_df[col], kind=kind) for col in s_or_df.columns}
-        return hv.NdOverlay(res, label='ECDF')
+        return hv.NdOverlay(res, label="ECDF")
     else:
         raise TypeError(f"{type(s_or_df)=} is not supported")
 
@@ -238,7 +238,7 @@ def hvplot_qqplot(Xs):
     _df = pd.DataFrame({"Theoretical Quantiles": osm, "Sample Quantiles": osr})
     scatter = _df.hvplot.scatter(_df.columns[0], _df.columns[1])
 
-    reg_line = hv.Slope(slope, intercept).opts(color='red')
+    reg_line = hv.Slope(slope, intercept).opts(color="red")
     res = scatter * reg_line
     return res
 
@@ -274,7 +274,7 @@ def get_tooltips(el: hv.core.dimension.Dimensioned) -> list[tuple[str, str]]:
 @register_method(classes=[hv.core.dimension.Dimensioned])
 def update_tooltips(el: hv.core.dimension.Dimensioned, tooltips: dict[str, str]):
     """Update tooltip formatting for specific fields in a HoloViews element or container.
- 
+
     Parameters
     ----------
     el : hv.core.dimension.Dimensioned
@@ -296,7 +296,7 @@ def update_tooltips(el: hv.core.dimension.Dimensioned, tooltips: dict[str, str])
         new_items = []
         for k, v in el.items():
             new_items.append((k, update_tooltips(v, tooltips)))
- 
+
         if isinstance(el, (hv.NdOverlay, hv.NdLayout)):
             new_el = el.clone(new_items)
         else:
@@ -340,7 +340,7 @@ def update_tooltips(el: hv.core.dimension.Dimensioned, tooltips: dict[str, str])
         # If it already contains @, it's a complete tooltip spec
         if "@" in format_str:
             return format_str
-        
+
         # Try to resolve as format alias
         try:
             resolved_format, format_type = get_format_string(format_str)
@@ -349,7 +349,7 @@ def update_tooltips(el: hv.core.dimension.Dimensioned, tooltips: dict[str, str])
         except ValueError:
             # Not a recognized alias, treat as raw format string
             pass
-        
+
         return format_str
 
     for label, value in current_tooltips:
@@ -403,16 +403,12 @@ def update_tooltips(el: hv.core.dimension.Dimensioned, tooltips: dict[str, str])
     return el.opts(tools=[hover])
 
 
-
-def build_color_mapping(
-    fig: hv.core.dimension.Dimensioned,
-    colors: Union[list, tuple, str]
-) -> dict[str, str]:
+def build_color_mapping(fig: hv.core.dimension.Dimensioned, colors: Union[list, tuple, str]) -> dict[str, str]:
     """Build a color mapping dict by traversing HoloViews structure and assigning colors to labels.
-    
+
     Traverses the HoloViews element structure to find all unique labels, then assigns
     colors from the provided palette/list in the order labels are encountered.
-    
+
     Parameters
     ----------
     fig : hv.core.dimension.Dimensioned
@@ -422,12 +418,12 @@ def build_color_mapping(
         - List/tuple of color strings (e.g., ['red', 'blue', 'green'])
         - HoloViews palette name (e.g., 'Category10', 'Set1')
         - Bokeh palette name
-    
+
     Returns
     -------
     dict[str, str]
         Mapping from label names to colors
-    
+
     Examples
     --------
     >>> curve1 = hv.Curve([1, 2, 3], label='A')
@@ -437,12 +433,13 @@ def build_color_mapping(
     >>> # Returns: {'A': 'red', 'B': 'blue'}
     """
     from itertools import cycle
-    
+
     # Convert palette name to list of colors if needed
     if isinstance(colors, str):
         # Try to get palette from bokeh or holoviews
         try:
             from bokeh.palettes import all_palettes
+
             # Try to find the palette
             if colors in all_palettes:
                 # Get the largest version of the palette
@@ -454,10 +451,10 @@ def build_color_mapping(
         except (ImportError, KeyError, ValueError):
             # If palette not found, try as a single color
             colors = [colors]
-    
+
     # Collect all unique labels in order of appearance
     labels_seen = []
-    
+
     def _extract_labels(obj):
         """Recursively extract labels from HoloViews structure."""
         if isinstance(obj, (hv.NdOverlay, hv.NdLayout)):
@@ -471,29 +468,26 @@ def build_color_mapping(
                 _extract_labels(element)
         else:
             # For individual elements, only use the label if it exists
-            if hasattr(obj, 'label') and obj.label:
+            if hasattr(obj, "label") and obj.label:
                 if obj.label not in labels_seen:
                     labels_seen.append(obj.label)
-    
+
     _extract_labels(fig)
-    
+
     # Create color cycle and build mapping
     color_cycle = cycle(colors)
     color_mapping = {}
-    
+
     for label in labels_seen:
         color_mapping[label] = next(color_cycle)
-    
+
     return color_mapping
 
 
 @register_method(classes=[hv.core.dimension.Dimensioned])
-def apply_colors(
-    fig: hv.core.dimension.Dimensioned, 
-    color_mapping: Union[dict, list, tuple, str]
-):
+def apply_colors(fig: hv.core.dimension.Dimensioned, color_mapping: Union[dict, list, tuple, str]):
     """Apply colors to HoloViews elements based on labels or dimension names.
- 
+
     Parameters
     ----------
     fig : hv.core.dimension.Dimensioned
@@ -508,21 +502,22 @@ def apply_colors(
     -------
     hv.core.dimension.ViewableElement
         Element with colors applied
-    
+
     Examples
     --------
     >>> # Using explicit color mapping
     >>> overlay.ms.apply_colors({'A': 'red', 'B': 'blue'})
-    >>> 
+    >>>
     >>> # Using color list (auto-assigns to labels in order)
     >>> overlay.ms.apply_colors(['red', 'blue', 'green'])
-    >>> 
+    >>>
     >>> # Using palette name
     >>> overlay.ms.apply_colors('Category10')
     """
     # If color_mapping is not a dict, build it automatically
     if not isinstance(color_mapping, dict):
         color_mapping = build_color_mapping(fig, color_mapping)
+
     def _apply_color_to_element(element):
         if isinstance(element, (hv.Curve, hv.Scatter)):
             label = element.label
@@ -553,12 +548,12 @@ def apply_colors(
                 new_items[key] = element
 
             return obj.clone(new_items)
- 
+
         elif isinstance(obj, (hv.Overlay, hv.Layout)):
             new_elements = []
             for element in obj:
                 new_elements.append(_apply_colors_recursive(element))
- 
+
             return obj.clone(new_elements)
 
         else:
@@ -567,20 +562,12 @@ def apply_colors(
     return _apply_colors_recursive(fig)
 
 
-
-
-
- 
-def plot_corr_matrix(
-    df: pd.DataFrame, 
-    only_lower_triangle: bool = False, 
-    show_diagonal: bool = True
-) -> hv.Overlay:
+def plot_corr_matrix(df: pd.DataFrame, only_lower_triangle: bool = False, show_diagonal: bool = True) -> hv.Overlay:
     """Display correlation matrix as HeatMap overlayed with formatted labels.
-    
+
     Creates a visualization of a correlation matrix using HoloViews, with a heatmap
     showing correlation values and text labels displaying the numeric values.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -592,12 +579,12 @@ def plot_corr_matrix(
     show_diagonal : bool, default True
         If True, show the diagonal (self-correlations, typically 1.0).
         If False, hide diagonal values.
-    
+
     Returns
     -------
     hv.Overlay
         HoloViews Overlay containing a HeatMap and Labels elements.
-    
+
     Examples
     --------
     >>> corr_matrix = df.corr()
@@ -606,21 +593,21 @@ def plot_corr_matrix(
     """
     # Configure heatmap options
     heatmap_opts = hv.opts.HeatMap(
-        width=500, 
-        height=450, 
-        cmap='coolwarm',
-        fontsize={'xticks': 6, 'yticks': 6},
-        xrotation=90, 
-        colorbar=True, 
+        width=500,
+        height=450,
+        cmap="coolwarm",
+        fontsize={"xticks": 6, "yticks": 6},
+        xrotation=90,
+        colorbar=True,
         invert_xaxis=True,
-        xaxis='top', 
-        xlabel="", 
+        xaxis="top",
+        xlabel="",
         ylabel="",
-        tools=['hover']
+        tools=["hover"],
     )
     # Apply masking based on parameters (don't modify original df)
     masked_df = df.copy()
-    
+
     if only_lower_triangle:
         # Keep only lower triangle (including or excluding diagonal based on show_diagonal)
         mask = np.tril(np.ones_like(masked_df, dtype=bool), k=0 if show_diagonal else -1)
@@ -628,21 +615,15 @@ def plot_corr_matrix(
     elif not show_diagonal:
         # Hide only diagonal
         masked_df = masked_df.where(~np.eye(*masked_df.shape, dtype=bool))
- 
+
     # Convert to long format for HoloViews (use future_stack=True to avoid FutureWarning)
     df_long = masked_df.stack(future_stack=True).rename("corr").reset_index()
- 
+
     # Create heatmap and labels
     heatmap = hv.HeatMap(df_long).opts(heatmap_opts)
     labels = hv.Labels(
-        df_long,
-        vdims=hv.Dimension(
-            'corr', 
-            value_format=lambda x: f"{x:.02f}" if np.isfinite(x) else ""
-        )
-    ).opts(text_font_size='8pt')
-    
+        df_long, vdims=hv.Dimension("corr", value_format=lambda x: f"{x:.02f}" if np.isfinite(x) else "")
+    ).opts(text_font_size="8pt")
+
     res = heatmap * labels
     return res
- 
- 

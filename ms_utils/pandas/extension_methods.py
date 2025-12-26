@@ -24,34 +24,34 @@ SeriesOrDataFrame = TypeVar("SeriesOrDataFrame", bound=Union[pd.Series, pd.DataF
 @register_method([pd.Series, pd.DataFrame])
 def trim_nans(obj: SeriesOrDataFrame, *, how: Literal["any", "all"] = "any", subset=None) -> SeriesOrDataFrame:
     """Remove rows containing NaNs from the beginning and end.
-    
+
     This method trims NaN values from the start and end of a Series or DataFrame,
     preserving the data in between. Useful for cleaning time series data where
     NaNs appear at the edges.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         The input data structure to trim NaNs from.
     how : {'any', 'all'}, default 'any'
         Determines the logic for NaN detection:
-        
+
         - ``'any'``: Remove rows if at least one element is NaN
         - ``'all'``: Remove rows only if all elements in a row are NaN
     subset : list-like, optional
         Column labels to consider for NaN detection. If None, uses all columns.
         Only applicable for DataFrames.
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         The trimmed data structure with NaN rows removed from beginning and end.
         The middle data (including any NaNs) is preserved.
-    
+
     Examples
     --------
     **Trim NaNs from a Series:**
-    
+
     >>> import pandas as pd
     >>> import numpy as np
     >>> s = pd.Series([np.nan, np.nan, 1, 2, np.nan, 3, 4, np.nan, np.nan])
@@ -62,9 +62,9 @@ def trim_nans(obj: SeriesOrDataFrame, *, how: Literal["any", "all"] = "any", sub
     5    3.0
     6    4.0
     dtype: float64
-    
+
     **Trim NaNs from a DataFrame:**
-    
+
     >>> df = pd.DataFrame({
     ...     'A': [np.nan, 1, 2, np.nan],
     ...     'B': [np.nan, 3, 4, 5]
@@ -73,9 +73,9 @@ def trim_nans(obj: SeriesOrDataFrame, *, how: Literal["any", "all"] = "any", sub
          A    B
     1  1.0  3.0
     2  2.0  4.0
-    
+
     **Use 'all' to only remove rows where all values are NaN:**
-    
+
     >>> df = pd.DataFrame({
     ...     'A': [np.nan, np.nan, 1, 2],
     ...     'B': [np.nan, 3, 4, 5]
@@ -85,12 +85,12 @@ def trim_nans(obj: SeriesOrDataFrame, *, how: Literal["any", "all"] = "any", sub
     1  NaN  3.0
     2  1.0  4.0
     3  2.0  5.0
-    
+
     See Also
     --------
     pd.DataFrame.dropna : Drop rows with NaN values
     pd.Series.dropna : Drop NaN values from Series
-    
+
     Notes
     -----
     This method differs from ``dropna()`` in that it only removes NaNs from
@@ -125,48 +125,48 @@ def trim_nans(obj: SeriesOrDataFrame, *, how: Literal["any", "all"] = "any", sub
 @register_method([pd.Series, pd.DataFrame])
 def normalize(obj: SeriesOrDataFrame, *, ord=1, axis=0, skipna=True) -> SeriesOrDataFrame:
     """Normalize using vector norms (L1, L2, etc.).
-    
+
     Divides values by their vector norm, scaling the data so that the norm
     equals 1. Commonly used for feature scaling in machine learning and
     data normalization in scientific computing.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         The input data to normalize.
     ord : {non-zero int, inf, -inf, 'fro', 'nuc'}, default 1
         Order of the norm (see ``numpy.linalg.norm`` for details):
-        
+
         - ``1``: L1 norm (sum of absolute values)
         - ``2``: L2 norm (Euclidean norm, most common)
         - ``np.inf``: Maximum norm (largest absolute value)
     axis : {0, 1}, default 0
         Axis along which to compute the norm:
-        
+
         - ``0``: Normalize along rows (each column normalized separately)
         - ``1``: Normalize along columns (each row normalized separately)
     skipna : bool, default True
         Whether to skip NaN values when computing the norm.
         If True, NaN values are treated as zero for norm calculation.
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         The normalized data structure where the vector norm equals 1.
-    
+
     Examples
     --------
     **L2 normalization of a Series (unit vector):**
-    
+
     >>> import pandas as pd
     >>> s = pd.Series([3, 4])
     >>> s.ms.normalize(ord=2)
     0    0.6
     1    0.8
     dtype: float64
-    
+
     **L1 normalization (values sum to 1):**
-    
+
     >>> s = pd.Series([1, 2, 3, 4])
     >>> s.ms.normalize(ord=1)
     0    0.1
@@ -174,29 +174,29 @@ def normalize(obj: SeriesOrDataFrame, *, ord=1, axis=0, skipna=True) -> SeriesOr
     2    0.3
     3    0.4
     dtype: float64
-    
+
     **Normalize each column of a DataFrame independently:**
-    
+
     >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
     >>> df.ms.normalize(ord=2, axis=0)
               A         B
     0  0.267261  0.455842
     1  0.534522  0.569803
     2  0.801784  0.683763
-    
+
     **Normalize each row independently:**
-    
+
     >>> df.ms.normalize(ord=2, axis=1)
               A         B
     0  0.242536  0.970143
     1  0.371391  0.928477
     2  0.447214  0.894427
-    
+
     See Also
     --------
     sklearn.preprocessing.normalize : Similar normalization in scikit-learn
     numpy.linalg.norm : Compute vector norms
-    
+
     Notes
     -----
     - L2 normalization creates unit vectors (length = 1)
@@ -204,12 +204,12 @@ def normalize(obj: SeriesOrDataFrame, *, ord=1, axis=0, skipna=True) -> SeriesOr
     - The result will contain NaN where the original norm was 0
     """
     assert axis in (0, 1), f"axis must be 0 or 1, got {axis}"
-    
+
     if skipna:
         denom = np.linalg.norm(np.nan_to_num(obj), ord=ord, axis=axis)
     else:
         denom = np.linalg.norm(obj, ord=ord, axis=axis)
-    
+
     if isinstance(obj, pd.Series):
         return obj.div(denom)
     else:
@@ -219,25 +219,25 @@ def normalize(obj: SeriesOrDataFrame, *, ord=1, axis=0, skipna=True) -> SeriesOr
 @register_method([pd.Series, pd.DataFrame])
 def isfinite(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Check for finite values (not NaN, not infinite).
-    
+
     Returns a boolean mask indicating which values are finite numbers
     (neither NaN nor positive/negative infinity). Useful for data validation
     and filtering before numerical operations.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input data to check for finite values.
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         Boolean mask with True for finite values, False for NaN or infinite values.
-    
+
     Examples
     --------
     **Check finite values in a Series:**
-    
+
     >>> import pandas as pd
     >>> import numpy as np
     >>> s = pd.Series([1.0, np.nan, np.inf, -np.inf, 2.0, 3.0])
@@ -249,17 +249,17 @@ def isfinite(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     4     True
     5     True
     dtype: bool
-    
+
     **Filter to keep only finite values:**
-    
+
     >>> s[s.ms.isfinite()]
     0    1.0
     4    2.0
     5    3.0
     dtype: float64
-    
+
     **Check finite values in a DataFrame:**
-    
+
     >>> df = pd.DataFrame({
     ...     'A': [1.0, np.inf, 3.0],
     ...     'B': [np.nan, 5.0, 6.0]
@@ -269,13 +269,13 @@ def isfinite(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     0   True  False
     1  False   True
     2   True   True
-    
+
     See Also
     --------
     pd.Series.isna : Check for NaN values
     np.isfinite : NumPy's finite value check
     pd.Series.notna : Check for non-NaN values
-    
+
     Notes
     -----
     This is equivalent to ``~(obj.isna() | obj.isin([-np.inf, np.inf]))``
@@ -287,27 +287,27 @@ def isfinite(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
 @register_method([pd.Series, pd.DataFrame])
 def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Transform data using Empirical Cumulative Distribution Function (ECDF).
-    
+
     Assigns each non-NaN value to its normalized rank (percentile rank),
     effectively transforming the data to a uniform distribution on [0, 1].
     Useful for comparing distributions and creating rank-based features.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input data to transform.
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         ECDF-transformed data with values between 0 and 1, representing
         the proportion of data points less than or equal to each value.
         NaN values remain as NaN.
-    
+
     Examples
     --------
     **Transform a Series to its ECDF:**
-    
+
     >>> import pandas as pd
     >>> s = pd.Series([10, 20, 30, 40])
     >>> s.ms.ecdf_transform()
@@ -316,9 +316,9 @@ def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     2    0.75
     3    1.00
     dtype: float64
-    
+
     **With duplicate values:**
-    
+
     >>> s = pd.Series([10, 20, 20, 30])
     >>> s.ms.ecdf_transform()
     0    0.25
@@ -326,9 +326,9 @@ def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     2    0.75
     3    1.00
     dtype: float64
-    
+
     **Transform DataFrame columns independently:**
-    
+
     >>> df = pd.DataFrame({
     ...     'A': [1, 2, 3, 4],
     ...     'B': [10, 20, 30, 40]
@@ -339,9 +339,9 @@ def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     1  0.50  0.50
     2  0.75  0.75
     3  1.00  1.00
-    
+
     **NaN values are preserved:**
-    
+
     >>> import numpy as np
     >>> s = pd.Series([1, np.nan, 3, 4])
     >>> s.ms.ecdf_transform()
@@ -350,12 +350,12 @@ def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     2    0.666667
     3    1.000000
     dtype: float64
-    
+
     See Also
     --------
     pd.Series.rank : Compute numerical data ranks
     scipy.stats.rankdata : Rank data in scipy
-    
+
     Notes
     -----
     - The transformation uses ``method='first'`` for ranking, which assigns
@@ -371,27 +371,27 @@ def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
 @register_method([pd.DataFrame])
 def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Flatten MultiIndex columns to single-level columns with string labels.
-    
+
     Converts MultiIndex columns to regular (single-level) columns by joining
     the level values with commas and spaces. Useful for simplifying complex
     column structures for display, export, or compatibility with tools that
     don't support MultiIndex.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
         DataFrame with potentially MultiIndex columns.
-    
+
     Returns
     -------
     pd.DataFrame
         DataFrame with flattened column names. If input doesn't have MultiIndex
         columns, returns the original DataFrame unchanged.
-    
+
     Examples
     --------
     **Flatten two-level MultiIndex columns:**
-    
+
     >>> import pandas as pd
     >>> df = pd.DataFrame({
     ...     ('A', 'X'): [1, 2],
@@ -402,9 +402,9 @@ def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
        A, X  A, Y  B, Z
     0     1     3     5
     1     2     4     6
-    
+
     **Works with more than two levels:**
-    
+
     >>> df = pd.DataFrame({
     ...     ('Group1', 'SubA', 'Metric1'): [1, 2],
     ...     ('Group1', 'SubA', 'Metric2'): [3, 4]
@@ -413,19 +413,19 @@ def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
        Group1, SubA, Metric1  Group1, SubA, Metric2
     0                      1                      3
     1                      2                      4
-    
+
     **No-op for regular columns:**
-    
+
     >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
     >>> result = df.ms.flatten_columns()
     >>> result.equals(df)
     True
-    
+
     See Also
     --------
     pd.DataFrame.droplevel : Remove a level from MultiIndex
     pd.MultiIndex.to_flat_index : Convert MultiIndex to Index
-    
+
     Notes
     -----
     - The separator is ``', '`` (comma + space)
@@ -434,7 +434,7 @@ def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     if not isinstance(df.columns, pd.MultiIndex):
         return df
-    
+
     df = df.copy()
     df.columns = [", ".join(map(str, col)) for col in df.columns]
     return df
@@ -443,35 +443,35 @@ def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
 @register_method([pd.Series, pd.DataFrame])
 def ix2str(obj: SeriesOrDataFrame, axis: Literal["index", "columns", 0, 1] = "index") -> SeriesOrDataFrame:
     """Convert index or column labels to string format.
-    
+
     Converts index or column labels to strings, which is useful for display
     purposes (e.g., in hvplot/holoviews) or when you need string-based
     indexing instead of numeric/datetime indexing.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input data structure.
     axis : {'index', 'columns', 0, 1}, default 'index'
         Which axis to convert to strings:
-        
+
         - ``'index'`` or ``0``: Convert index labels to strings
         - ``'columns'`` or ``1``: Convert column labels to strings (DataFrame only)
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         Data structure with string-converted labels on specified axis.
-    
+
     Raises
     ------
     ValueError
         If axis is 'columns' or 1 for a Series input.
-    
+
     Examples
     --------
     **Convert numeric index to strings:**
-    
+
     >>> import pandas as pd
     >>> s = pd.Series([1, 2, 3], index=[10, 20, 30])
     >>> s.ms.ix2str()
@@ -479,29 +479,29 @@ def ix2str(obj: SeriesOrDataFrame, axis: Literal["index", "columns", 0, 1] = "in
     20    2
     30    3
     dtype: int64
-    
+
     **Convert datetime index to strings:**
-    
+
     >>> import pandas as pd
     >>> dates = pd.date_range('2023-01-01', periods=3)
     >>> s = pd.Series([1, 2, 3], index=dates)
     >>> s_str = s.ms.ix2str()
     >>> s_str.index
     Index(['2023-01-01', '2023-01-02', '2023-01-03'], dtype='object')
-    
+
     **Convert DataFrame columns to strings:**
-    
+
     >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=[100, 200])
     >>> df.ms.ix2str(axis='columns')
        100  200
     0    1    2
     1    3    4
-    
+
     See Also
     --------
     pd.Index.astype : Convert index data type
     pd.Index.map : Apply function to index values
-    
+
     Notes
     -----
     - This creates a shallow copy of the data
@@ -509,86 +509,86 @@ def ix2str(obj: SeriesOrDataFrame, axis: Literal["index", "columns", 0, 1] = "in
     - Works with any index/column type that can be converted to string
     """
     obj = obj.copy(deep=False)
-    
+
     if isinstance(obj, pd.Series) and axis not in [0, "index"]:
         raise ValueError(f"{axis=} not supported for pd.Series. Use 'index' or 0.")
-    
+
     if axis in [0, "index"]:
         obj.index = obj.index.map(str)
     else:
         obj.columns = obj.columns.map(str)
-    
+
     return obj
+
 
 # ============================================================================
 # BATCH 1: Core Data Manipulation & Index Operations (7 functions)
 # ============================================================================
 
+
 @register_method([pd.Series, pd.DataFrame])
 def add_fake_rows(
-    obj: Union[pd.Series, pd.DataFrame],
-    breaks: Union[str, Iterable],
-    fake_value=np.nan
+    obj: Union[pd.Series, pd.DataFrame], breaks: Union[str, Iterable], fake_value=np.nan
 ) -> Union[pd.Series, pd.DataFrame]:
     """Add break rows at specified intervals for visual separation.
-    
+
     Inserts rows with specified values at regular intervals or custom positions
     in time series data. Useful for adding visual breaks in plots or tables
     between periods (years, months, quarters).
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input data with DatetimeIndex.
     breaks : {'year', 'month', 'quarter'} or iterable
         Where to add breaks:
-        
+
         - ``'year'``: Add breaks at the start of each year
-        - ``'month'``: Add breaks at the start of each month  
+        - ``'month'``: Add breaks at the start of each month
         - ``'quarter'``: Add breaks at the start of each quarter
         - **iterable**: Custom break positions (list, pd.Series, or array of datetimes)
     fake_value : scalar, default np.nan
         Value to insert at break positions. Can be any scalar value
         (e.g., ``np.nan``, ``0``, ``-999``, ``'BREAK'``).
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         Data with break rows inserted at specified positions. Returns same type as input.
-    
+
     Raises
     ------
     AssertionError
         If index is not a DatetimeIndex or not monotonic increasing.
     ValueError
         If custom break values already exist in the index.
-    
+
     Examples
     --------
     **Add yearly breaks:**
-    
+
     >>> import pandas as pd
     >>> import numpy as np
     >>> dates = pd.date_range('2020-06-01', '2022-06-01', freq='6M')
     >>> s = pd.Series(range(len(dates)), index=dates)
     >>> result = s.ms.add_fake_rows(breaks='year')
     # Adds NaN rows at 2021-01-01 and 2022-01-01 (slightly before midnight)
-    
+
     **Add monthly breaks:**
-    
+
     >>> dates = pd.date_range('2023-01-15', '2023-04-15', freq='M')
     >>> df = pd.DataFrame({'value': range(len(dates))}, index=dates)
     >>> result = df.ms.add_fake_rows(breaks='month')
-    
+
     **Custom break positions:**
-    
+
     >>> custom_breaks = pd.to_datetime(['2023-03-01', '2023-06-01'])
     >>> result = s.ms.add_fake_rows(breaks=custom_breaks, fake_value=-999)
-    
+
     See Also
     --------
     pd.concat : Concatenate pandas objects
-    
+
     Notes
     -----
     - Requires a DatetimeIndex that is monotonic increasing
@@ -602,13 +602,13 @@ def add_fake_rows(
         if breaks == "year":
             break_positions = obj.index.to_series().groupby(obj.index.year).first() - pd.Timedelta("1ns")
         elif breaks == "month":
-            break_positions = obj.index.to_series().groupby(
-                [obj.index.year, obj.index.month]
-            ).first() - pd.Timedelta("1ns")
+            break_positions = obj.index.to_series().groupby([obj.index.year, obj.index.month]).first() - pd.Timedelta(
+                "1ns"
+            )
         elif breaks == "quarter":
-            break_positions = obj.index.to_series().groupby(
-                [obj.index.year, obj.index.quarter]
-            ).first() - pd.Timedelta("1ns")
+            break_positions = obj.index.to_series().groupby([obj.index.year, obj.index.quarter]).first() - pd.Timedelta(
+                "1ns"
+            )
         else:
             raise ValueError(
                 f"Unsupported break type: '{breaks}'. Use 'year', 'month', 'quarter', or provide custom iterable."
@@ -635,10 +635,10 @@ def add_fake_rows(
 @register_method([pd.DataFrame])
 def move_columns_to_position(df: pd.DataFrame, col_pos: dict[str, int]) -> pd.DataFrame:
     """Move specified columns to new positions.
-    
+
     Reorders DataFrame columns by moving specified columns to designated
     positions while preserving the relative order of other columns.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -646,40 +646,40 @@ def move_columns_to_position(df: pd.DataFrame, col_pos: dict[str, int]) -> pd.Da
     col_pos : dict[str, int]
         Dictionary mapping column names to their desired positions.
         Positions can be negative (counted from the end).
-    
+
     Returns
     -------
     pd.DataFrame
         DataFrame with reordered columns.
-    
+
     Raises
     ------
     ValueError
         If a specified column doesn't exist, position is out of bounds,
         or multiple columns map to the same position.
-    
+
     Examples
     --------
     **Move columns to specific positions:**
-    
+
     >>> import pandas as pd
     >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6], 'D': [7, 8]})
     >>> df.ms.move_columns_to_position({'D': 0, 'A': 2})
        D  B  A  C
     0  7  3  1  5
     1  8  4  2  6
-    
+
     **Use negative positions (from end):**
-    
+
     >>> df.ms.move_columns_to_position({'A': -1})  # Move A to last position
        B  C  D  A
     0  3  5  7  1
     1  4  6  8  2
-    
+
     See Also
     --------
     pd.DataFrame.reindex : Conform DataFrame to new index with optional filling logic
-    
+
     Notes
     -----
     - Positions are 0-indexed
@@ -691,43 +691,42 @@ def move_columns_to_position(df: pd.DataFrame, col_pos: dict[str, int]) -> pd.Da
             raise ValueError(f"{col} is not in df.columns")
         if not -df.shape[1] <= pos < df.shape[1]:
             raise ValueError(f"{col} cannot be moved to position {pos} in DataFrame with {df.shape[1]} columns")
-    
+
     col_pos = {col: (pos % df.shape[1]) for col, pos in col_pos.items()}
     if len(set(col_pos.values())) < len(col_pos):
         raise ValueError("Multiple columns assigned to same position")
-    
+
     new_cols = list(df.columns)
     for col, pos in sorted(col_pos.items(), key=lambda x: x[1]):
         new_cols.remove(col)
         new_cols.insert(pos, col)
-    
+
     return df[new_cols]
 
 
 @register_method([pd.Series, pd.DataFrame])
-
 def ix2date(obj: SeriesOrDataFrame, format="%Y%m%d") -> SeriesOrDataFrame:
     """Convert index from YYYYMMDD format to datetime.
-    
+
     Converts integer or string index values in YYYYMMDD format to pandas
     datetime objects. Handles both single-level and MultiIndex structures.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input data with index in YYYYMMDD format.
     format : str, default '%Y%m%d'
         Date format string for parsing.
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         Data with datetime-converted index.
-    
+
     Examples
     --------
     **Convert simple integer index:**
-    
+
     >>> import pandas as pd
     >>> s = pd.Series([1, 2, 3], index=[20230101, 20230102, 20230103])
     >>> s.ms.ix2date()
@@ -735,9 +734,9 @@ def ix2date(obj: SeriesOrDataFrame, format="%Y%m%d") -> SeriesOrDataFrame:
     2023-01-02    2
     2023-01-03    3
     dtype: int64
-    
+
     **Works with MultiIndex (expects 'date' and 'stock' levels):**
-    
+
     >>> idx = pd.MultiIndex.from_arrays(
     ...     [[20230101, 20230102], ['AAPL', 'GOOGL']],
     ...     names=['date', 'stock']
@@ -748,12 +747,12 @@ def ix2date(obj: SeriesOrDataFrame, format="%Y%m%d") -> SeriesOrDataFrame:
     2023-01-01  AAPL     100
     2023-01-02  GOOGL    200
     dtype: int64
-    
+
     See Also
     --------
     pd.to_datetime : Convert argument to datetime
     ix2dt : Convert date/time index levels to datetime format
-    
+
     Notes
     -----
     - For MultiIndex, expects levels named 'date' and 'stock'
@@ -762,8 +761,7 @@ def ix2date(obj: SeriesOrDataFrame, format="%Y%m%d") -> SeriesOrDataFrame:
     obj = obj.copy()
     if isinstance(obj.index, pd.MultiIndex):
         new_index = pd.MultiIndex.from_arrays(
-            [pd.to_datetime(obj.index.get_level_values("date"), format=format), 
-             obj.index.get_level_values("stock")],
+            [pd.to_datetime(obj.index.get_level_values("date"), format=format), obj.index.get_level_values("stock")],
             names=["date", "stock"],
         )
         obj.index = new_index
@@ -775,24 +773,24 @@ def ix2date(obj: SeriesOrDataFrame, format="%Y%m%d") -> SeriesOrDataFrame:
 @register_method([pd.Series, pd.DataFrame])
 def ix2dt(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Convert 'date' or 'time' index levels to datetime format.
-    
+
     Merges separate 'date' and 'time' index levels into a single 'datetime'
     level, or converts individual 'date' or 'time' levels to datetime format.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input with 'date' and/or 'time' index levels (or single index).
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         Data with datetime-converted index.
-    
+
     Examples
     --------
     **Merge date and time levels:**
-    
+
     >>> import pandas as pd
     >>> idx = pd.MultiIndex.from_arrays(
     ...     [[20230101, 20230101], [93000, 100000]],
@@ -803,21 +801,21 @@ def ix2dt(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     2023-01-01 09:30:00    100
     2023-01-01 10:00:00    200
     dtype: int64
-    
+
     **Convert single date level:**
-    
+
     >>> s = pd.Series([1, 2], index=pd.Index([20230101, 20230102], name='date'))
     >>> s.ms.ix2dt()
     date
     2023-01-01    1
     2023-01-02    2
     dtype: int64
-    
+
     See Also
     --------
     ix2date : Convert YYYYMMDD index to datetime
     split_datetime_index : Split datetime into separate date and time levels
-    
+
     Notes
     -----
     - Expects index levels named 'date' and/or 'time'
@@ -826,7 +824,7 @@ def ix2dt(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     - If both present, merges into 'datetime' level
     """
     import logging
-    
+
     index = obj.index
     date_time_levels = [level for level in index.names if level in ("date", "time")]
 
@@ -863,47 +861,47 @@ def ix2dt(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
 @register_method([pd.Series, pd.DataFrame])
 def split_datetime_index(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Split datetime index into separate 'date' and 'time' levels.
-    
+
     Takes a Series or DataFrame with a datetime index (or datetime level in
     MultiIndex) and splits it into separate 'date' and 'time' components,
     creating a MultiIndex with these two levels.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input with datetime index or datetime level in MultiIndex.
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         Object with MultiIndex containing separate 'date' and 'time' levels.
-    
+
     Raises
     ------
     ValueError
         If the index or any level is not named 'datetime'.
     TypeError
         If input is not a pandas Series or DataFrame.
-    
+
     Examples
     --------
     **Split single datetime index:**
-    
+
     >>> import pandas as pd
     >>> dates = pd.date_range('2023-01-01 10:00:00', periods=3, freq='H')
     >>> s = pd.Series([1, 2, 3], index=dates)
     >>> s.index.name = 'datetime'
     >>> s.ms.split_datetime_index()
-    date        time    
+    date        time
     2023-01-01  10:00:00    1
                 11:00:00    2
                 12:00:00    3
     dtype: int64
-    
+
     See Also
     --------
     ix2dt : Convert date/time levels to datetime
-    
+
     Notes
     -----
     - Requires index or level to be named 'datetime'
@@ -916,9 +914,7 @@ def split_datetime_index(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
             if isinstance(obj.index, pd.MultiIndex):
                 # Split 'datetime' level in MultiIndex
                 new_index = obj.index.to_frame(index=False)
-                new_index[["date", "time"]] = new_index["datetime"].apply(
-                    lambda x: pd.Series([x.date(), x.time()])
-                )
+                new_index[["date", "time"]] = new_index["datetime"].apply(lambda x: pd.Series([x.date(), x.time()]))
                 new_index = new_index.drop(columns=["datetime"])
                 obj.index = pd.MultiIndex.from_frame(new_index)
             else:
@@ -937,33 +933,32 @@ def split_datetime_index(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
 
 
 @register_method([pd.Series, pd.DataFrame])
-
 def describe_values(obj: SeriesOrDataFrame, **kwargs) -> Union[pd.Series, pd.DataFrame]:
     """Generate enhanced descriptive statistics.
-    
+
     Extends pandas' describe() method by adding statistics about NaN values,
     zeros, and negative values. Useful for data quality assessment.
-    
+
     Parameters
     ----------
     obj : pd.Series or pd.DataFrame
         Input data to describe.
     **kwargs
         Additional keyword arguments passed to pandas describe() method.
-    
+
     Returns
     -------
     pd.Series or pd.DataFrame
         Descriptive statistics with additional rows:
-        
+
         - **pct_nans**: Percentage of NaN values
         - **pct_zeros**: Percentage of zero values
         - **pct_neg**: Percentage of negative values
-    
+
     Examples
     --------
     **Enhanced statistics for a Series:**
-    
+
     >>> import pandas as pd
     >>> import numpy as np
     >>> s = pd.Series([1, -2, 0, np.nan, 5])
@@ -980,9 +975,9 @@ def describe_values(obj: SeriesOrDataFrame, **kwargs) -> Union[pd.Series, pd.Dat
     pct_zeros    0.20000
     pct_neg      0.20000
     dtype: float64
-    
+
     **For DataFrame, applies to each column:**
-    
+
     >>> df = pd.DataFrame({'A': [1, 0, -1, np.nan], 'B': [np.nan, 2, 3, 4]})
     >>> df.ms.describe_values()
                   A         B
@@ -992,12 +987,12 @@ def describe_values(obj: SeriesOrDataFrame, **kwargs) -> Union[pd.Series, pd.Dat
     pct_nans   0.25     0.25
     pct_zeros  0.25     0.00
     pct_neg    0.25     0.00
-    
+
     See Also
     --------
     pd.DataFrame.describe : Generate descriptive statistics
     pd.Series.describe : Generate descriptive statistics
-    
+
     Notes
     -----
     - Percentages are calculated relative to total size (including NaNs)
@@ -1020,15 +1015,15 @@ def describe_values(obj: SeriesOrDataFrame, **kwargs) -> Union[pd.Series, pd.Dat
 # BATCH 2: Utility & Helper Functions (7 functions)
 # ============================================================================
 
-@register_method([pd.Index])
 
+@register_method([pd.Index])
 def get_most_recent_index_before(idx: pd.Index, key, include: bool = True):
     """Find the most recent index value before (or at) a given key.
-    
+
     Returns the largest index value that is less than or equal to the key
     (if include=True) or strictly less than the key (if include=False).
     Useful for finding the nearest earlier timestamp in time series data.
-    
+
     Parameters
     ----------
     idx : pd.Index
@@ -1039,41 +1034,41 @@ def get_most_recent_index_before(idx: pd.Index, key, include: bool = True):
     include : bool, default True
         If True, exact matches are returned.
         If False, only strictly smaller values are considered.
-    
+
     Returns
     -------
     scalar or None
         The index value (e.g., pd.Timestamp) or None if no such value exists.
-    
+
     Raises
     ------
     TypeError
         If idx is not a pandas Index or is a MultiIndex.
-    
+
     Examples
     --------
     **Find nearest date before a key:**
-    
+
     >>> import pandas as pd
     >>> idx = pd.DatetimeIndex(['2023-01-01', '2023-01-05', '2023-01-10'])
     >>> idx.ms.get_most_recent_index_before('2023-01-07')
     Timestamp('2023-01-05 00:00:00')
-    
+
     **With include=False (strictly before):**
-    
+
     >>> idx.ms.get_most_recent_index_before('2023-01-05', include=False)
     Timestamp('2023-01-01 00:00:00')
-    
+
     **Returns None if no earlier value:**
-    
+
     >>> idx.ms.get_most_recent_index_before('2022-12-31')
     None
-    
+
     See Also
     --------
     pd.Index.searchsorted : Find indices where elements should be inserted
     pd.Index.get_indexer : Compute indexer and mask for new index
-    
+
     Notes
     -----
     - Requires a sortable index (MultiIndex not supported)
@@ -1081,7 +1076,7 @@ def get_most_recent_index_before(idx: pd.Index, key, include: bool = True):
     - If index is not monotonic increasing, it will be sorted internally
     """
     import pandas.api.types as ptypes
-    
+
     if not isinstance(idx, pd.Index):
         raise TypeError("idx must be a pandas Index")
     if isinstance(idx, pd.MultiIndex):
@@ -1114,10 +1109,10 @@ def tabulator(
     **kwargs,
 ):
     """Create an interactive Tabulator widget for viewing/editing DataFrames.
-    
+
     Creates a Panel Tabulator widget with sensible defaults for interactive
     DataFrame display. Supports editing, filtering, pagination, and more.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -1137,30 +1132,30 @@ def tabulator(
         For MultiIndex, all levels are frozen.
     **kwargs
         Additional arguments passed to panel.widgets.Tabulator.
-    
+
     Returns
     -------
     panel.widgets.Tabulator
         Interactive Tabulator widget.
-    
+
     Examples
     --------
     **Basic usage:**
-    
+
     >>> import pandas as pd
     >>> df = pd.DataFrame({'A': range(100), 'B': range(100, 200)})
     >>> widget = df.ms.tabulator(height=300, page_size=20)
     >>> widget  # Display in Jupyter
-    
+
     **Editable table:**
-    
+
     >>> widget = df.ms.tabulator(editable=True)
     # Users can now edit cells directly
-    
+
     See Also
     --------
     panel.widgets.Tabulator : Full Tabulator widget documentation
-    
+
     Notes
     -----
     - Requires Panel library: ``pip install panel``
