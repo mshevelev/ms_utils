@@ -2,7 +2,7 @@ import sqlalchemy as sa
  
 from .method_registration import register_method
  
-@register_method(class_=sa.engine.reflection.Inspector, namespace="ms")
+@register_method(class_=sa.engine.reflection.Inspector)
 def get_tables_and_views_with_schemas(inspector) -> list[dict]:
   schema_names = inspector.get_schema_names()
 
@@ -16,7 +16,7 @@ def get_tables_and_views_with_schemas(inspector) -> list[dict]:
   return res
 
 
-@register_method(class_=sa.engine.base.Engine, namespace="ms")
+@register_method(class_=sa.engine.base.Engine)
 def inspect(engine: sa.engine.base.Engine) -> sa.engine.reflection.Inspector:
   """Create an inspector for an `engine`"""
   return sa.inspect(engine)

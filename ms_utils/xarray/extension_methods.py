@@ -44,7 +44,7 @@ def xarray_ufunc(func):
     return wrapper
 
 
-@register_method([xr.DataArray, xr.Dataset], namespace='ms')
+@register_method([xr.DataArray, xr.Dataset])
 def ix2date(obj: DataArrayOrDataset, dims: tuple[str] = ("date",)) -> DataArrayOrDataset:
     """Convert integer date coordinates to datetime format.
     
@@ -90,7 +90,7 @@ def ix2date(obj: DataArrayOrDataset, dims: tuple[str] = ("date",)) -> DataArrayO
     return obj
 
 
-@register_method([xr.DataArray, xr.Dataset], namespace='ms')
+@register_method([xr.DataArray, xr.Dataset])
 def ix2int(obj: DataArrayOrDataset, dims: tuple[str] = ("date",)) -> DataArrayOrDataset:
     """Convert datetime coordinates to YYYYMMDD integer format.
     
@@ -137,7 +137,7 @@ def ix2int(obj: DataArrayOrDataset, dims: tuple[str] = ("date",)) -> DataArrayOr
     return obj
 
 
-@register_method([xr.DataArray, xr.Dataset], namespace='ms')
+@register_method([xr.DataArray, xr.Dataset])
 def describe_index(obj: Union[xr.DataArray, xr.Dataset]) -> list[dict]:
     """Describe all dimensions and their indexes.
     
@@ -183,7 +183,7 @@ def describe_index(obj: Union[xr.DataArray, xr.Dataset]) -> list[dict]:
     return res
 
 
-@register_method([xr.DataArray, xr.Dataset], namespace='ms')
+@register_method([xr.DataArray, xr.Dataset])
 def between(obj: T, left, right, inclusive: Literal["both", "neither", "left", "right"] = "both") -> T:
     """Filter values between left and right bounds.
     
@@ -246,7 +246,7 @@ def between(obj: T, left, right, inclusive: Literal["both", "neither", "left", "
         raise ValueError(f"inclusive must be 'both', 'neither', 'left', or 'right', got {inclusive}")
 
 
-@register_method([xr.DataArray], namespace='ms')
+@register_method([xr.DataArray])
 def get_index_range(da: xr.DataArray, dim: str = "date") -> tuple:
     """Get the first and last values of a dimension's index.
     
@@ -283,7 +283,7 @@ def get_index_range(da: xr.DataArray, dim: str = "date") -> tuple:
     return idx[0], idx[-1]
 
 
-@register_method([xr.DataArray], namespace='ms')
+@register_method([xr.DataArray])
 def binary_logical_op_on_union(
     da1: xr.DataArray,
     da2: xr.DataArray,
@@ -376,7 +376,7 @@ def binary_logical_op_on_union(
 
 
 # Convenience methods using binary_logical_op_on_union
-@register_method([xr.DataArray], namespace='ms')
+@register_method([xr.DataArray])
 def intersection(da: xr.DataArray, other: xr.DataArray, union_dim: str = "stock") -> xr.DataArray:
     """Element-wise logical AND on union of coordinates.
     
@@ -407,7 +407,7 @@ def intersection(da: xr.DataArray, other: xr.DataArray, union_dim: str = "stock"
     return binary_logical_op_on_union(da, other, union_dim, op="and")
 
 
-@register_method([xr.DataArray], namespace='ms')
+@register_method([xr.DataArray])
 def union(da: xr.DataArray, other: xr.DataArray, union_dim: str = "stock") -> xr.DataArray:
     """Element-wise logical OR on union of coordinates.
     
@@ -431,7 +431,7 @@ def union(da: xr.DataArray, other: xr.DataArray, union_dim: str = "stock") -> xr
     return binary_logical_op_on_union(da, other, union_dim, op="or")
 
 
-@register_method([xr.DataArray], namespace='ms')
+@register_method([xr.DataArray])
 def difference(da: xr.DataArray, other: xr.DataArray, union_dim: str = "stock") -> xr.DataArray:
     """Element-wise difference on union of coordinates.
     
@@ -454,7 +454,7 @@ def difference(da: xr.DataArray, other: xr.DataArray, union_dim: str = "stock") 
     return binary_logical_op_on_union(da, other, union_dim, op="diff")
 
 
-@register_method([xr.DataArray], namespace='ms')
+@register_method([xr.DataArray])
 def symmetric_difference(da: xr.DataArray, other: xr.DataArray, union_dim: str = "stock") -> xr.DataArray:
     """Element-wise symmetric difference (XOR) on union of coordinates.
     

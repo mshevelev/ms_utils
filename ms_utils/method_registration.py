@@ -40,6 +40,7 @@ Notes
 """
 
 import functools 
+from . import config
  
 class NamespaceInstance:
     """Instance-level wrapper that binds namespace methods to a specific object.
@@ -137,7 +138,7 @@ class CustomNamespace:
         return NamespaceInstance(self, obj)
 
 
-def register_method(classes: list, namespace: str):
+def register_method(classes: list, namespace: str = None):
     """Decorator to register a function as a method in a namespace on multiple classes.
     
     This decorator adds the decorated function to a specified namespace on one or more
@@ -148,8 +149,9 @@ def register_method(classes: list, namespace: str):
     ----------
     classes : list of type
         List of classes to register the method on (e.g., [pd.DataFrame, pd.Series])
-    namespace : str
-        Name of the namespace to add the method to (e.g., 'custom', 'ms')
+    namespace : str, optional
+        Name of the namespace to add the method to (e.g., 'custom', 'ms').
+        If None, use config.DEFAULT_NAMESPACE.
     
     Returns
     -------
@@ -197,6 +199,9 @@ def register_method(classes: list, namespace: str):
     >>> df.ml.scale()  # Both methods available
     >>> df.ml.normalize()
     """
+    if namespace is None:
+        namespace = config.DEFAULT_NAMESPACE
+
     def decorator(func):
         for class_ in classes:
             if not hasattr(class_, namespace):

@@ -21,7 +21,7 @@ from ms_utils.method_registration import register_method
 SeriesOrDataFrame = TypeVar("SeriesOrDataFrame", bound=Union[pd.Series, pd.DataFrame])
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def trim_nans(obj: SeriesOrDataFrame, *, how: Literal["any", "all"] = "any", subset=None) -> SeriesOrDataFrame:
     """Remove rows containing NaNs from the beginning and end.
     
@@ -122,7 +122,7 @@ def trim_nans(obj: SeriesOrDataFrame, *, how: Literal["any", "all"] = "any", sub
     return obj.loc[first_valid_idx:last_valid_idx]
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def normalize(obj: SeriesOrDataFrame, *, ord=1, axis=0, skipna=True) -> SeriesOrDataFrame:
     """Normalize using vector norms (L1, L2, etc.).
     
@@ -216,7 +216,7 @@ def normalize(obj: SeriesOrDataFrame, *, ord=1, axis=0, skipna=True) -> SeriesOr
         return obj.div(denom, axis=(1 if axis == 0 else 0))
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def isfinite(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Check for finite values (not NaN, not infinite).
     
@@ -284,7 +284,7 @@ def isfinite(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     return ~(obj.isna() | obj.isin([-np.inf, np.inf]))
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Transform data using Empirical Cumulative Distribution Function (ECDF).
     
@@ -368,7 +368,7 @@ def ecdf_transform(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     return obj.rank(method="first") / len(obj)
 
 
-@register_method([pd.DataFrame], namespace='ms')
+@register_method([pd.DataFrame])
 def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Flatten MultiIndex columns to single-level columns with string labels.
     
@@ -440,7 +440,7 @@ def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def ix2str(obj: SeriesOrDataFrame, axis: Literal["index", "columns", 0, 1] = "index") -> SeriesOrDataFrame:
     """Convert index or column labels to string format.
     
@@ -524,7 +524,7 @@ def ix2str(obj: SeriesOrDataFrame, axis: Literal["index", "columns", 0, 1] = "in
 # BATCH 1: Core Data Manipulation & Index Operations (7 functions)
 # ============================================================================
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def add_fake_rows(
     obj: Union[pd.Series, pd.DataFrame],
     breaks: Union[str, Iterable],
@@ -632,7 +632,7 @@ def add_fake_rows(
     return pd.concat([fake_data, obj]).sort_index()
 
 
-@register_method([pd.DataFrame], namespace='ms')
+@register_method([pd.DataFrame])
 def move_columns_to_position(df: pd.DataFrame, col_pos: dict[str, int]) -> pd.DataFrame:
     """Move specified columns to new positions.
     
@@ -704,7 +704,8 @@ def move_columns_to_position(df: pd.DataFrame, col_pos: dict[str, int]) -> pd.Da
     return df[new_cols]
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')  
+@register_method([pd.Series, pd.DataFrame])
+
 def ix2date(obj: SeriesOrDataFrame, format="%Y%m%d") -> SeriesOrDataFrame:
     """Convert index from YYYYMMDD format to datetime.
     
@@ -771,7 +772,7 @@ def ix2date(obj: SeriesOrDataFrame, format="%Y%m%d") -> SeriesOrDataFrame:
     return obj
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def ix2dt(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Convert 'date' or 'time' index levels to datetime format.
     
@@ -859,7 +860,7 @@ def ix2dt(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     return obj
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms')
+@register_method([pd.Series, pd.DataFrame])
 def split_datetime_index(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     """Split datetime index into separate 'date' and 'time' levels.
     
@@ -935,7 +936,8 @@ def split_datetime_index(obj: SeriesOrDataFrame) -> SeriesOrDataFrame:
     return obj
 
 
-@register_method([pd.Series, pd.DataFrame], namespace='ms' )
+@register_method([pd.Series, pd.DataFrame])
+
 def describe_values(obj: SeriesOrDataFrame, **kwargs) -> Union[pd.Series, pd.DataFrame]:
     """Generate enhanced descriptive statistics.
     
@@ -1018,7 +1020,8 @@ def describe_values(obj: SeriesOrDataFrame, **kwargs) -> Union[pd.Series, pd.Dat
 # BATCH 2: Utility & Helper Functions (7 functions)
 # ============================================================================
 
-@register_method([pd.Index], namespace='ms')
+@register_method([pd.Index])
+
 def get_most_recent_index_before(idx: pd.Index, key, include: bool = True):
     """Find the most recent index value before (or at) a given key.
     
@@ -1099,7 +1102,7 @@ def get_most_recent_index_before(idx: pd.Index, key, include: bool = True):
     return sidx[pos] if pos >= 0 else None
 
 
-@register_method([pd.DataFrame], namespace='ms')
+@register_method([pd.DataFrame])
 def tabulator(
     df: pd.DataFrame,
     *,
