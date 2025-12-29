@@ -627,3 +627,46 @@ def plot_corr_matrix(df: pd.DataFrame, only_lower_triangle: bool = False, show_d
 
     res = heatmap * labels
     return res
+
+@register_method(classes=[hv.core.dimension.Dimensioned])
+def opts(fig: hv.core.dimension.Dimensioned, **kwargs) -> hv.core.dimension.Dimensioned:
+    """Extension of .opts with additional formatting and mapping capabilities.
+
+    Parameters
+    ----------
+    fig : hv.core.dimension.Dimensioned
+        The HoloViews element or container
+    xformat : str, optional
+        Format for x-axis (calls .ms.xformat)
+    yformat : str, optional
+        Format for y-axis (calls .ms.yformat)
+    vdim_name : str, optional
+        Rename vdimension (calls .ms.rename_vdim)
+    color_mapping : dict or list or str, optional
+        Apply custom colors (calls .ms.apply_colors)
+    **kwargs : dict
+        Standard options passed to fig.opts()
+
+    Returns
+    -------
+    hv.core.dimension.Dimensioned
+        Modified HoloViews object
+    """
+    xform = kwargs.pop("xformat", None)
+    yform = kwargs.pop("yformat", None)
+    vdim_name = kwargs.pop("vdim_name", None)
+    color_map = kwargs.pop("color_mapping", None)
+
+    if xform:
+        fig = xformat(fig, xform)
+    if yform:
+        fig = yformat(fig, yform)
+    if vdim_name:
+        fig = rename_vdim(fig, vdim_name)
+    if color_map:
+        fig = apply_colors(fig, color_map)
+
+    if kwargs:
+        fig = fig.opts(**kwargs)
+
+    return fig
