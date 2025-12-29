@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas.io.formats.style import Styler
 import panel as pn
-from typing import Sequence, Literal
+from typing import Sequence, Literal, Union
 
 from ms_utils.method_registration import register_method
 from ms_utils.string_formatters import get_formatter
@@ -163,3 +163,20 @@ def align_index(
         return styler.set_table_styles(styles, overwrite=False)
     else:
         return styler
+
+
+@register_method([pd.Series, pd.DataFrame])
+def style(obj: Union[pd.Series, pd.DataFrame]) -> Styler:
+    """Apply default ms_utils styling to a Series or DataFrame and return a Styler.
+
+    By default, applies left alignment to index headers and values using
+    `.ms.align_index()`.
+
+    Returns
+    -------
+    Styler
+        A pandas Styler object with default styling applied.
+    """
+    if isinstance(obj, pd.Series):
+        return obj.to_frame().style.ms.align_index()
+    return obj.style.ms.align_index()
