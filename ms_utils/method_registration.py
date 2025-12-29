@@ -153,13 +153,13 @@ def register_method(classes: list, namespace: str = None, if_exists: str = None)
         List of classes to register the method on (e.g., [pd.DataFrame, pd.Series])
     namespace : str, optional
         Name of the namespace to add the method to (e.g., 'custom', 'ms').
-        If None, use config.DEFAULT_NAMESPACE.
+        If None, use config.settings.DEFAULT_NAMESPACE.
     if_exists : {'raise', 'override', 'ignore'}, optional
         How to handle if a method with the same name already exists in the namespace.
         - 'raise': Raise a ValueError (default, unless configured otherwise).
         - 'override': Overwrite the existing method.
         - 'ignore': Skip registration and log a warning.
-        If None, uses config.REGISTRATION_CONFLICT_MODE.
+        If None, uses config.settings.REGISTRATION_CONFLICT_RESOLUTION.
 
     Returns
     -------
@@ -208,9 +208,9 @@ def register_method(classes: list, namespace: str = None, if_exists: str = None)
     >>> df.ml.normalize()
     """
     if namespace is None:
-        namespace = config.DEFAULT_NAMESPACE
+        namespace = config.settings.DEFAULT_NAMESPACE
 
-    conflict_mode = if_exists or config.REGISTRATION_CONFLICT_MODE
+    conflict_mode = if_exists or config.settings.REGISTRATION_CONFLICT_RESOLUTION
 
     def decorator(func):
         name = func.__name__
